@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "BMYB Tracker",
+    "slug": "bmyb",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "BMYBbudgettrackerapp",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.nishanirdesh.BMYBTracker",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nishanirdesh.BMYBTracker",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a41ba3dc-7751-4c71-af80-7363e1809e31"
+      },
+      "router": {}
+    },
+    "owner": "nishanirdesh-2"
+  }
+}
