@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "BMYB Tracker",
-    "slug": "bmyb",
+    "name": "Diet Munch",
+    "slug": "dietmujch",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "BMYBbudgettrackerapp",
+    "scheme": "dietmujch",
     "userInterfaceStyle": "automatic",
     "android": {
-      "package": "com.nishanirdesh.BMYBTracker",
+      "package": "com.nishanirdesh.dietmujch",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -17,7 +17,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nishanirdesh.BMYBTracker",
+      "bundleIdentifier": "com.nishanirdesh.dietmujch",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

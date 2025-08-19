@@ -14,7 +14,7 @@ export default function Layout() {
       {/* Header */}
       <View style={styles.header}>
         {/* Title in center */}
-        <Text style={styles.headerText}>Bali Mewla Youth Brigade</Text>
+        <Text style={styles.headerText}>Diet Munch</Text>
 
         {/* Home icon on right */}
         <TouchableOpacity
