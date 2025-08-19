@@ -1,6 +1,6 @@
-# 📊 Budget Tracker App
+# 📊 Diet Munch
 
-A simple and lightweight **budget tracking mobile app** built with **React Native** (using Expo) that allows you to log your daily expenses and store them directly in a connected **Google Sheet** via Apps Script API.
+A simple and lightweight **dit munchmobile app** built with **React Native** (using Expo) that allows you to log your daily expenses and store them directly in a connected **Google Sheet** via Apps Script API.
 
 ---
 
@@ -71,4 +71,4 @@ npx expo start
 npm install -g eas-cli this is important
 
 
-Made with ❤️ by Bhuiyash Kumar
+Made with ❤️ by Nirdesh Kumar
