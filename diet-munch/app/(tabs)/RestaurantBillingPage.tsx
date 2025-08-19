@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './styles.css'; // Import the CSS file
-
+import { Dropdown } from 'react-native-element-dropdown';
+import { TextInput } from "react-native-paper";
+import { View, Text,  Pressable, GestureResponderEvent, FlatList } from 'react-native';
+import { RadioButton } from "react-native-paper";
 // --- Mock Data (replace with API calls / DB) ---
 const MEMBERS = [
   { id: 101, name: 'Naresh Kumar', mobile: '8750503366', balance: 500 },
@@ -146,6 +149,7 @@ const RestaurantBillingPage: React.FC = () => {
   const [cardAmt, setCardAmt] = useState(0);
   const [upiAmt, setUpiAmt] = useState(0);
   const [isBillLocked, setIsBillLocked] = useState(false);
+// New
 
   // --- Derived State (useMemo) ---
   const { subtotal, tax, grandTotal } = useMemo(() => {
@@ -213,19 +217,40 @@ const RestaurantBillingPage: React.FC = () => {
       setCustomerMobile(member.mobile);
     }
   };
-
-  const handleCustomerTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const type = e.target.value as 'wallet' | 'walkin';
-    setCustomerType(type);
+// Instead of expecting an event, just take the value directly
+const handleCustomerTypeChange = (value: string) => {
+     const type = value as 'wallet' | 'walkin';
+  setCustomerType(type);
     setPaymentMode(type === 'wallet' ? 'wallet' : 'cash');
     if (type === 'walkin') {
       setSelectedMember(null);
       setMemberSearch('');
       setFromWallet(0);
     }
-  };
+};
+  // const handleCustomerTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const type = e.target.value as 'wallet' | 'walkin';
+  //   setCustomerType(type);
+  //   setPaymentMode(type === 'wallet' ? 'wallet' : 'cash');
+  //   if (type === 'walkin') {
+  //     setSelectedMember(null);
+  //     setMemberSearch('');
+  //     setFromWallet(0);
+  //   }
+  // };
 
-  const handleAddItem = (e?: React.FormEvent) => {
+  // const handleAddItem = (e?: React.FormEvent) => {
+  //   e?.preventDefault();
+  //   if (!selectedItemId) return;
+  //   const item = MENU.find(i => i.id === selectedItemId);
+  //   if (!item) return;
+  //   setCart(prevCart => [
+  //     ...prevCart,
+  //     { id: item.id, name: item.name, qty, price }
+  //   ]);
+  //   setQty(1);
+  // };
+ const handleAddItem = (e?: GestureResponderEvent) => {
     e?.preventDefault();
     if (!selectedItemId) return;
     const item = MENU.find(i => i.id === selectedItemId);
@@ -352,80 +377,160 @@ const RestaurantBillingPage: React.FC = () => {
 
   // --- JSX Rendering ---
   return (
-    <div className="wrap">
-      <header>
-        <h1>Restaurant Billing</h1>
-        <div className="pill">Bill #{billNo}</div>
-      </header>
+    <View className="wrap">
+      <View className="header">
+        <Text>Restaurant Billing</Text>
+    <Text  className="pill">Bill #{billNo}</Text>
+      </View>
 
-      <div className="grid">
+      <View className="grid">
         {/* LEFT: Items & Customer */}
-        <section className="card" id="cartCard">
-          <div className="body">
-            <h2>Customer</h2>
-            <div className="row" style={{ alignItems: 'flex-end' }}>
-              <div className="field" style={{ flex: '1 1 100%' }}>
-                <label>Customer Type</label>
-                <div className="radio-row">
-                  <label className="radio">
-                    <input type="radio" name="ctype" value="wallet" checked={customerType === 'wallet'} onChange={handleCustomerTypeChange} disabled={isBillLocked} /> Wallet Member
-                  </label>
-                  <label className="radio">
-                    <input type="radio" name="ctype" value="walkin" checked={customerType === 'walkin'} onChange={handleCustomerTypeChange} disabled={isBillLocked} /> Other / Walk‑in
-                  </label>
-                </div>
-              </div>
+        <View  className="card" id="cartCard">
+          <View className="body">
+            <Text>Customer</Text>
+            <View className="row" style={{ alignItems: 'flex-end' }}>
+              
+<View className="field">
+  <Text >Customer Type</Text>
+  <RadioButton.Group
+    onValueChange={handleCustomerTypeChange}
+    value={customerType}
+  >
+    <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+      <RadioButton value="wallet" disabled={isBillLocked} />
+      <Text>Wallet Member</Text>
+    </View>
 
-              <div className={`field ${customerType === 'walkin' ? 'hidden' : ''}`} id="memberLookup">
-                <label>Member (search by name or mobile)</label>
-                <input id="memberSearch" placeholder="e.g., Rajesh or 9876543210" list="memberList" value={memberSearch} onChange={handleMemberSearch} disabled={isBillLocked} />
-                <datalist id="memberList">
-                  {MEMBERS.map(m => <option key={m.id} value={`${m.name} (${m.mobile})`} />)}
-                </datalist>
-              </div>
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <RadioButton value="walkin" disabled={isBillLocked} />
+      <Text>Other / Walk-in</Text>
+    </View>
+  </RadioButton.Group>
+</View>
+              <View className={`field ${customerType === 'walkin' ? 'hidden' : ''}`} id="memberLookup">
+                <Text>Member (search by name or mobile)</Text>
+              <View>
+            <Text>Member Search</Text>
+                 <Dropdown
+        // style={styles.dropdown}
+        // placeholderStyle={styles.placeholderStyle}
+        // selectedTextStyle={styles.selectedTextStyle}
+        // inputSearchStyle={styles.inputSearchStyle}
+        data={MEMBERS}
+        search
+        maxHeight={300}
+        labelField="label"
+        valueField="value"
+        placeholder="e.g., Rajesh or 9876543210"
+        searchPlaceholder="Search member..."
+        value={memberSearch}
+        onChange={(item: { value: React.SetStateAction<string>; }) => {
+          setMemberSearch(item.value);
+        }}
+        disable={isBillLocked}
+      />
+            
+          </View>
+              </View>
 
-              <div className="field">
-                <label>Wallet Balance</label>
-                <input id="walletBalance" value={fmt(selectedMember?.balance || 0)} disabled />
-              </div>
+              <View className="field">
+                <Text>Wallet Balance</Text>
+                {/* <input id="walletBalance" value={fmt(selectedMember?.balance || 0)} disabled />
+                 */}
+                 <TextInput value={fmt(selectedMember?.balance || 0)} editable={false} />
+              </View>
 
-              <div className="field">
-                <label>Customer Name</label>
-                <input id="customerName" placeholder="Customer name (optional)" value={customerName} onChange={e => setCustomerName(e.target.value)} disabled={isBillLocked} />
-              </div>
+              <View className="field">
+                <Text>Customer Name</Text>
+                {/* <input id="customerName" placeholder="Customer name (optional)" value={customerName} onChange={e => setCustomerName(e.target.value)} disabled={isBillLocked} /> */}
+                 <TextInput
+                            value={customerName}
+                            onChangeText={setCustomerName}
+                            editable={!isBillLocked}
+                            placeholder="Customer name (optional)"
+                          />
+              </View>
 
-              <div className="field">
-                <label>Mobile</label>
-                <input id="customerMobile" placeholder="Optional for walk‑in" value={customerMobile} onChange={e => setCustomerMobile(e.target.value)} disabled={isBillLocked} />
-              </div>
-            </div>
-          </div>
+              <View className="field">
+                <Text >Mobile</Text >
+                {/* <input id="customerMobile" placeholder="Optional for walk‑in" value={customerMobile} onChange={e => setCustomerMobile(e.target.value)} disabled={isBillLocked} /> */}
+                  <TextInput
+                            value={customerMobile}
+                            onChangeText={setCustomerMobile}
+                            editable={!isBillLocked}
+                            placeholder="Optional for walk-in"
+                          />
+              </View>
+            </View>
+          </View>
 
-          <div className="body">
-            <h2>Items</h2>
-            <form className="row" style={{ alignItems: 'flex-end' }} onSubmit={handleAddItem}>
-              <div className="field">
-                <label>Item</label>
-                <select id="itemSelect" value={selectedItemId} onChange={e => setSelectedItemId(Number(e.target.value))} disabled={isBillLocked}>
-                  {MENU.map(item => (
-                    <option key={item.id} value={item.id}>{item.name} — ₹{item.price}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="field" style={{ maxWidth: 120 }}>
-                <label>Qty</label>
-                <input type="number" id="qty" min="1" value={qty} onChange={e => setQty(Number(e.target.value))} disabled={isBillLocked} />
-              </div>
-              <div className="field" style={{ maxWidth: 160 }}>
-                <label>Price (₹)</label>
-                <input type="number" id="price" min="0" step="0.01" value={price} onChange={e => setPrice(Number(e.target.value))} disabled={isBillLocked} />
-              </div>
-              <button type="submit" className="btn primary" id="addBtn" title="Add item (Enter)" disabled={isBillLocked}>Add</button>
+          <View className="body">
+            <Text>Items</Text>
+            {/* <form className="row" style={{ alignItems: 'flex-end' }} onSubmit={handleAddItem}> */}
+              <View className="field">
+                <Text >Item</Text >
+               <Dropdown
+                 style={{
+                   height: 50,
+                   borderColor: "gray",
+                   borderWidth: 1,
+                   borderRadius: 8,
+                   paddingHorizontal: 8,
+                   marginTop: 10,
+                 }}
+                 placeholderStyle={{ fontSize: 14, color: "gray" }}
+                 selectedTextStyle={{ fontSize: 14 }}
+                 inputSearchStyle={{ height: 40, fontSize: 14 }}
+                 data={MENU.map((item) => ({
+                   label: `${item.name} — ₹${item.price}`,
+                   value: item.id,
+                 }))}
+                 search
+                 maxHeight={300}
+                 labelField="label"
+                 valueField="value"
+                 placeholder="Select item"
+                 searchPlaceholder="Search item..."
+                 value={selectedItemId}
+                 onChange={(item: { value: React.SetStateAction<number>; }) => setSelectedItemId(item.value)}
+                 disable={isBillLocked}
+               />
+              </View>
+              <View className="field" style={{ maxWidth: 120 }}>
+                <Text >Qty</Text >
+                {/* <input type="number" id="qty" min="1" value={qty} onChange={e => setQty(Number(e.target.value))} disabled={isBillLocked} /> */}
+                  <TextInput
+                          placeholder="Qty"
+                          value={String(qty)}
+                          onChangeText={(t) => setQty(Number(t))}
+                          keyboardType="numeric"
+                          editable={!isBillLocked}
+                        />
+              </View>
+              <View className="field" style={{ maxWidth: 160 }}>
+                <Text >Price (₹)</Text >
+                {/* <input type="number" id="price" min="0" step="0.01" value={price} onChange={e => setPrice(Number(e.target.value))} disabled={isBillLocked} /> */}
+                  <TextInput
+                          placeholder="Price"
+                          value={String(price)}
+                          onChangeText={(t) => setPrice(Number(t))}
+                          keyboardType="numeric"
+                          editable={!isBillLocked}
+                        />
+                
+              </View>
+                <Pressable className="btn primary" onPress={handleAddItem} disabled={isBillLocked}>
+                        <Text>Add</Text>
+                      </Pressable>
+                      <Pressable className="btn ghost" onPress={() => setCart([])} disabled={isBillLocked}>
+                        <Text>Clear</Text>
+                      </Pressable>
+              {/* <button type="submit" className="btn primary" id="addBtn" title="Add item (Enter)" disabled={isBillLocked}>Add</button>
               <button type="button" className="btn ghost" id="clearBtn" title="Clear items" onClick={() => setCart([])} disabled={isBillLocked}>Clear</button>
-            </form>
-
-            <div style={{ marginTop: 12, overflow: 'auto' }}>
-              <table id="cartTable">
+            </form> */}
+ {/* <View style={{ marginTop: 12, overflow: 'auto' }}></View> */}
+            <View >
+              {/* <table id="cartTable">
                 <thead>
                   <tr>
                     <th style={{ width: '40%' }}>Item</th>
@@ -446,98 +551,186 @@ const RestaurantBillingPage: React.FC = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+              </table> */}
+               {/* Cart List */}
+                      <FlatList
+                        data={cart}
+                        keyExtractor={(_, i) => i.toString()}
+                        renderItem={({ item, index }) => (
+                          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                            <Text>{item.name}</Text>
+                            <TextInput
+                              value={String(item.qty)}
+                              onChangeText={(t) => handleUpdateCartItem(index, "qty", t)}
+                              editable={!isBillLocked}
+                              keyboardType="numeric"
+                              style={{ borderWidth: 1, width: 50 }}
+                            />
+                            <TextInput
+                              value={String(item.price)}
+                              onChangeText={(t) => handleUpdateCartItem(index, "price", t)}
+                              editable={!isBillLocked}
+                              keyboardType="numeric"
+                              style={{ borderWidth: 1, width: 70 }}
+                            />
+                            <Text>{fmt(item.qty * item.price)}</Text>
+                            <Pressable onPress={() => handleRemoveItem(index)}>
+                              <Text>✕</Text>
+                            </Pressable>
+                          </View>
+                        )}
+                      />
+            </View>
+          </View>
+        </View>
 
         {/* RIGHT: Totals, Payment & Share */}
-        <aside className="card">
-          <div className="body">
-            <h2>Summary</h2>
-            <div className="totals">
-              <div className="line"><span>Subtotal</span><strong id="subtotal">{fmt(subtotal)}</strong></div>
-              <div className="line"><span>GST 5%</span><strong id="tax">{fmt(tax)}</strong></div>
-              <div className="line total"><span>Total</span><strong id="grand">{fmt(grandTotal)}</strong></div>
-            </div>
-          </div>
-          <div className="body">
-            <h2>Payment</h2>
+        <View className="card">
+          <View className="body">
+            <Text>Summary</Text>
+            <View className="totals">
+              <View className="line"><Text >Subtotal</Text><Text id="subtotal">{fmt(subtotal)}</Text ></View>
+              <View className="line"><Text >GST 5%</Text><Text id="tax">{fmt(tax)}</Text></View>
+              <View className="line total"><Text >Total</Text><Text id="grand">{fmt(grandTotal)}</Text></View>
+            </View>
+          </View>
+          <View className="body">
+            <Text>Payment</Text>
             {customerType === 'wallet' ? (
-              <div id="walletOptions">
-                <div className="row">
-                  <label className="radio">
-                    <input type="radio" name="paymode" value="wallet" checked={paymentMode === 'wallet'} onChange={e => setPaymentMode(e.target.value as any)} disabled={isBillLocked} /> Wallet
-                  </label>
-                </div>
-              </div>
+              <View id="walletOptions">
+                <View className="row">
+                  <Text  className="radio">
+                    <RadioButton
+    value="wallet"
+    status={paymentMode === "wallet" ? "checked" : "unchecked"}
+    onPress={() => setPaymentMode("wallet")}
+    disabled={isBillLocked}
+  />
+  <Text>Wallet</Text>
+                  </Text >
+                </View>
+              </View>
             ) : (
-              <div id="walkinOptions">
-                <div className="row">
-                  <label className="radio">
-                    <input type="radio" name="paymode" value="cash" checked={paymentMode === 'cash'} onChange={e => setPaymentMode(e.target.value as any)} disabled={isBillLocked} /> Cash
-                  </label>
-                  <label className="radio">
-                    <input type="radio" name="paymode" value="card" checked={paymentMode === 'card'} onChange={e => setPaymentMode(e.target.value as any)} disabled={isBillLocked} /> Card
-                  </label>
-                  <label className="radio">
-                    <input type="radio" name="paymode" value="upi" checked={paymentMode === 'upi'} onChange={e => setPaymentMode(e.target.value as any)} disabled={isBillLocked} /> UPI
-                  </label>
-                </div>
-              </div>
+              <View id="walkinOptions">
+                <View className="row">
+                  <Text  className="radio">
+                   <RadioButton
+    value="cash"
+    status={paymentMode === "cash" ? "checked" : "unchecked"}
+    onPress={() => setPaymentMode("cash")}
+    disabled={isBillLocked}
+  />
+  <Text>Cash</Text>
+                  </Text >
+                  <Text  className="radio">
+                   <RadioButton
+    value="card"
+    status={paymentMode === "card" ? "checked" : "unchecked"}
+    onPress={() => setPaymentMode("card")}
+    disabled={isBillLocked}
+  />
+  <Text>Card</Text>
+                  </Text >
+                  <Text  className="radio">
+                     <RadioButton
+    value="upi"
+    status={paymentMode === "upi" ? "checked" : "unchecked"}
+    onPress={() => setPaymentMode("upi")}
+    disabled={isBillLocked}
+  />
+  <Text>UPI</Text>
+                  </Text >
+                </View>
+              </View>
             )}
-            <div className={`split ${Math.abs(dueAmount) > 0.009 ? 'error' : ''}`}>
+            <View className={`split ${Math.abs(dueAmount) > 0.009 ? 'error' : ''}`}>
               {customerType === 'wallet' && (
-                <div className="line">
-                  <span className="badge">From Wallet</span>
-                  <input id="fromWallet" type="number" min="0" step="0.01" value={fromWallet} onChange={e => setFromWallet(Number(e.target.value))} className="right" style={{ width: 140 }} disabled={isBillLocked} />
-                </div>
+                <View className="line">
+                  <Text className="badge">From Wallet</Text>
+                 <TextInput mode="outlined"
+  keyboardType="numeric"
+  value={fromWallet.toString()}
+  onChangeText={(text) => setFromWallet(Number(text) || 0)}
+  style={{ width: 140, textAlign: "right" }}
+  editable={!isBillLocked}
+/>
+                </View>
               )}
               {(customerType === 'walkin' && paymentMode === 'cash') && (
-                <div className="line">
-                  <span className="badge">Cash</span>
-                  <input id="cashAmt" type="number" min="0" step="0.01" value={cashAmt} onChange={e => setCashAmt(Number(e.target.value))} className="right" style={{ width: 140 }} disabled={isBillLocked} />
-                </div>
+                <View className="line">
+                  <Text className="badge">Cash</Text>
+                  <TextInput
+  mode="outlined"
+  keyboardType="numeric"
+  value={cashAmt.toString()}
+  onChangeText={(text) => setCashAmt(Number(text) || 0)}
+  style={{ width: 140, textAlign: "right" }}
+  editable={!isBillLocked}
+/>
+                </View>
               )}
               {(customerType === 'walkin' && paymentMode === 'card') && (
-                <div className="line">
-                  <span className="badge">Card</span>
-                  <input id="cardAmt" type="number" min="0" step="0.01" value={cardAmt} onChange={e => setCardAmt(Number(e.target.value))} className="right" style={{ width: 140 }} disabled={isBillLocked} />
-                </div>
+                <View className="line">
+                  <Text className="badge">Card</Text>
+                 // Inside your component
+<TextInput
+  mode="outlined"
+  keyboardType="numeric"
+  value={cardAmt.toString()}
+  onChangeText={(text) => setCardAmt(Number(text) || 0)}
+  style={{ width: 140, textAlign: "right" }}
+  editable={!isBillLocked}
+/>
+                </View>
               )}
               {(customerType === 'walkin' && paymentMode === 'upi') && (
-                <div className="line">
-                  <span className="badge">UPI</span>
-                  <input id="upiAmt" type="number" min="0" step="0.01" value={upiAmt} onChange={e => setUpiAmt(Number(e.target.value))} className="right" style={{ width: 140 }} disabled={isBillLocked} />
-                </div>
+                <View className="line">
+                  <Text className="badge">UPI</Text>
+                 <TextInput
+  mode="outlined"
+  keyboardType="numeric"
+  value={upiAmt.toString()}
+  onChangeText={(text) => setUpiAmt(Number(text) || 0)}
+  style={{ width: 140, textAlign: "right" }}
+  editable={!isBillLocked}
+/>
+                </View>
               )}
-              <div className="line"><span className="muted">Remaining Wallet Balance</span><strong id="remBal">{fmt(remainingBalance)}</strong></div>
-              <div className="line"><span className="muted">Paid</span><strong id="paid">{fmt(paidAmount)}</strong></div>
-              <div className="line"><span className="muted">Due</span><strong id="due">{fmt(dueAmount)}</strong></div>
-            </div>
-          </div>
+              <View className="line"><Text  className="muted">Remaining Wallet Balance</Text ><Text  id="remBal">{fmt(remainingBalance)}</Text ></View>
+              <View className="line"><Text  className="muted">Paid</Text ><Text  id="paid">{fmt(paidAmount)}</Text ></View>
+              <View className="line"><Text  className="muted">Due</Text ><Text  id="due">{fmt(dueAmount)}</Text ></View>
+            </View>
+          </View>
 
-          <div className="body">
-            <h2>WhatsApp Share</h2>
-            <div className="row">
-              <div className="field">
-                <label>Share Message (editable)</label>
-                <textarea id="waPreview" placeholder="Message preview will appear here..." value={decodeURIComponent(buildWaMessage().msg.replaceAll('%0A', '\n'))} readOnly />
-              </div>
-            </div>
-          </div>
+          <View className="body">
+            <Text>WhatsApp Share</Text>
+            <View className="row">
+              <View className="field">
+                <Text >Share Message (editable)</Text >
+               <TextInput
+  mode="outlined"
+  placeholder="Message preview will appear here..."
+  value={decodeURIComponent(buildWaMessage().msg.replaceAll('%0A', '\n'))}
+  multiline
+  numberOfLines={4}
+  editable={false} // same as readOnly
+  style={{ minHeight: 100 }}
+/>
+              </View>
+            </View>
+          </View>
 
-          <div className="footer">
-            <div className="btn-row">
-              <button className="btn danger" id="voidBtn" onClick={() => window.location.reload()} disabled={isBillLocked}>Void</button>
+          <View className="footer">
+            <View className="btn-row">
+              {/* <button className="btn danger" id="voidBtn" onClick={() => window.location.reload()} disabled={isBillLocked}>Void</button>
               <button className="btn primary" id="confirmBtn" onClick={handleConfirm} disabled={isBillLocked}>Confirm</button>
-              <button className="btn" id="whatsappBtn" onClick={handleShareOnWhatsApp}>Share on WhatsApp</button>
-            </div>
-            <div className="hint">Member ID: <span id="memberIdLabel" className="badge">{selectedMember?.id || '—'}</span></div>
-          </div>
-        </aside>
-      </div>
-    </div>
+              <button className="btn" id="whatsappBtn" onClick={handleShareOnWhatsApp}>Share on WhatsApp</button> */}
+            </View>
+            <View className="hint">Member ID: <Text id="memberIdLabel" className="badge">{selectedMember?.id || '—'}</Text></View>
+          </View>
+        </View>
+      </View>
+    </View>
   );
 };
 

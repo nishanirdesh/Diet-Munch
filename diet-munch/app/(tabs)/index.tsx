@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
+
 import {
   Dimensions,
   StyleSheet,
@@ -18,14 +19,10 @@ export default function Home() {
 
   const icons = [
     
-    { name: "receipt-outline", label: "Dashboard", link: "/dashboard" },
+    { name: "dashboard", label: "Dashboard", link: "/dashboard" },
     { name: "person-add", label: "Add Member", link: "/add-member" },
     { name: "people-outline", label: "Show Member", link: "/show-member" },
-    { name: "card-outline", label: "Add Expenses", link: "/add-expenses" },
-    { name: "pricetag-outline", label: "Show Expenses", link: "/show-expenses" },
-     { name: "cash", label: "Add Monthly", link: "/add-monthly" },
-    { name: "receipt-outline", label: "Show Monthly", link: "/show-monthly" },
-    { name: "bill", label: "demo", link: "/demo" }
+    { name: "receipt-outline", label: "Bill", link: "/add-bildetails" }
    
   ];
 
