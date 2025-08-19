@@ -15,7 +15,7 @@ import {
   View
 } from "react-native";
 
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzI7C6UNouJEqfty4KH7sUYwBUVkpZ4VxmEECCGvi6SEypEbXix4gwNN_uYkV-x6mb-/exec";
+const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TYCi2NJdtfsh3it3JDTzSU8uuLyK-zZa8Ra3J2H0F4V/exec";
 
 type Member = {
   Id: string | number;
@@ -76,7 +76,7 @@ export default function TableExpenseScreen() {
     Alert.alert("Invalid Mobile Number", "Please enter a valid 10-digit mobile number.");
     return;
   }
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(apiUrl+"?requestName=SaveMember", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(memberObj),

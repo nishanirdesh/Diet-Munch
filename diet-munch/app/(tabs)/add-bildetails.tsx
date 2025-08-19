@@ -16,7 +16,9 @@ import {
     StyleSheet,
   View,
   TouchableOpacity,
-  Dimensions
+  Dimensions,
+  ActivityIndicator,
+  Button
 } from "react-native";
 import { black, white } from "react-native-paper/lib/typescript/styles/themes/v2/colors";
 const { width } = Dimensions.get("window");
@@ -80,7 +82,7 @@ export default function TableExpenseScreen() {
   // const [cardAmt, setCardAmt] = useState(0);
   const [upiAmt, setUpiAmt] = useState(0);
   const [isBillLocked, setIsBillLocked] = useState(false);
-
+const [loading, setLoading] = useState(false);
   // --- Derived State (useMemo) ---
   const { subtotal, tax, grandTotal } = useMemo(() => {
     const s = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
@@ -88,7 +90,7 @@ export default function TableExpenseScreen() {
     const g = +(s + t).toFixed(2);
     return { subtotal: s, tax: t, grandTotal: g };
   }, [cart]);
-
+const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TYCi2NJdtfsh3it3JDTzSU8uuLyK-zZa8Ra3J2H0F4V/exec";
   const paidAmount = useMemo(() => {
     //return +(fromWallet + cashAmt + cardAmt + upiAmt).toFixed(2);
         return +(fromWallet + cashAmt  + upiAmt).toFixed(2);
@@ -287,8 +289,8 @@ const handleCustomerTypeChange = (value: string) => {
 // .then(data => console.log(data));
     try {
       // Send the data to your backend API
-
-   const apiUrl="https://script.google.com/macros/s/AKfycbyWsKsyMxy3Et-FEfKFh7-K-uI-zGEyWRily0mDC_iwF8FOzidFsWd-XXvHBJP-AlYA/exec";
+setLoading(true);
+   
       console.log('Saving bill data:', billData);
 
       const response = await fetch(apiUrl, {
@@ -304,13 +306,15 @@ const handleCustomerTypeChange = (value: string) => {
 //      requestName:"SaveBill"
 //   })
       });
-console.log('Response:', response);
+
     const message =  response.text(); // Get plain text from server
-    console.log('Response:', message);
+ 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-
+if(response.ok) {
+    alert('Bill saved successfully!');
+}
       // Success: Log and then update UI
       console.log('Bill data saved successfully!');
     // Deduct wallet (mock update)
@@ -319,6 +323,7 @@ console.log('Response:', response);
       // For this example, we'll manually update the state.
       setSelectedMember(prev => prev ? { ...prev, balance: prev.balance - fromWallet } : null);
     }
+    setLoading(false);
     setIsBillLocked(true);
     //window.print();
      } catch (error) {
@@ -330,8 +335,7 @@ console.log('Response:', response);
 
 const handleShareOnWhatsApp = () => {
   let { msg } = buildWaMessage();
-  let phone = "9990912056";
-
+  let phone = selectedMember?.mobile || customerMobile || '';
   if (!phone) {
     alert("No mobile number provided");
     return;
@@ -769,14 +773,18 @@ style={{
     <Text style={styles.btnText}>Void</Text>
   </TouchableOpacity>
 
-  <TouchableOpacity
+  {/*  */}
+ {loading ? (
+              <ActivityIndicator size="large" color="#007bff" />
+            ) : (
+              <TouchableOpacity
     onPress={handleConfirm}
     disabled={isBillLocked}
     style={[styles.btnAdd ]}
   >
     <Text style={styles.btnText}>Confirm</Text>
   </TouchableOpacity>
-
+            )}
   <TouchableOpacity
     onPress={handleShareOnWhatsApp}
     style={[styles.btnAdd]}

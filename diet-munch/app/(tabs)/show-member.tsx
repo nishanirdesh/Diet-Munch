@@ -15,8 +15,7 @@ import {
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbzI7C6UNouJEqfty4KH7sUYwBUVkpZ4VxmEECCGvi6SEypEbXix4gwNN_uYkV-x6mb-/exec";
-
+const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TYCi2NJdtfsh3it3JDTzSU8uuLyK-zZa8Ra3J2H0F4V/exec";
 function formatDate(isoDate: string): string {
   const date = new Date(isoDate);
   return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
@@ -28,6 +27,8 @@ type Member = {
   Location: string;
   Mobile: string;
   dob: string;
+  amount: string | number;
+  ismonthly: number;
 };
 
 type MemberItem = {
@@ -66,7 +67,7 @@ const [filteredMembers, setFilteredMembers] = useState<MemberItem[]>([]);
 
   useEffect(() => {
     fetchExpenses();
-       fetch("https://script.google.com/macros/s/AKfycbwzNoO_750155zjMbjqFJRS5IdnAhXJB06Ry4uIc7HWWJVWaTe4AEBYNfqYpAG5Hz8t/exec")
+       fetch(apiUrl+ "?requestName=showMembers")
       .then((res) => res.json())
       .then((data: Member[]) => {
         
@@ -94,8 +95,9 @@ const withAllOption = [
 
   const fetchExpenses = async () => {
     try {
-      const res = await fetch(SHEET_API_URL);
+      const res = await fetch(apiUrl+ "?requestName=showMembers");
       const data = await res.json();
+      console.log("Fetched members:", data);
    setAllMembers(data);
   setFilteredMembers(data); // start by showing all
   
@@ -130,7 +132,7 @@ const withAllOption = [
     Alert.alert("Invalid Mobile Number", "Please enter a valid 10-digit mobile number.");
     return;
   }
-    const res = await fetch(SHEET_API_URL, {
+    const res = await fetch(apiUrl+"?requestName=SaveMember", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(memberObj),
@@ -178,7 +180,7 @@ const handleSelectMember = (selectedValue: string | null) => {
     return;
   }
     setLoading(true); // ✅ Show loader
-      const response = await fetch(SHEET_API_URL, {
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingItem),
@@ -240,6 +242,7 @@ return (
             <Text style={styles.headerCell}>Name</Text>
             <Text style={styles.headerCell}>Mobile</Text>
             <Text style={styles.headerCell}>Job</Text>
+            <Text style={styles.headerCell}>Amount</Text>
           </View>
         }
         renderItem={({ item, index }) => {
@@ -255,6 +258,7 @@ return (
               <Text style={styles.cell}>{item.name}</Text>
               <Text style={styles.cell}>{item.mobile}</Text>
               <Text style={styles.cell}>{item.job}</Text>
+               <Text style={styles.cell}>{item.amount}</Text>
             </TouchableOpacity>
           );
         }}
