@@ -68,7 +68,7 @@ type MemberItem = {
 export default function TableExpenseScreen() {
   
     const router = useRouter();
-  const [billNo] = useState(() => 'BILL-' + Date.now().toString().slice(-8));
+  const [billNo] = useState(() => 'B-' + Date.now().toString().slice(-4));
   const [customerType, setCustomerType] = useState<'wallet' | 'walkin'>('wallet');
   const [selectedMember, setSelectedMember] = useState<MemberItem | null>(null);
   const [memberSearch, setMemberSearch] = useState('');
@@ -76,6 +76,7 @@ export default function TableExpenseScreen() {
   const [customerMobile, setCustomerMobile] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedItemId, setSelectedItemId] = useState(menu[0].id);
+    const [selectedCategoryName, setselectedCategoryName] = useState(menu[0].category);
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState(menu[0].price);
   // const [paymentMode, setPaymentMode] = useState<'wallet' | 'cash' | 'card' | 'upi'>('wallet');
@@ -356,6 +357,8 @@ if(response.ok) {
     setLoading(false);
     setIsBillLocked(true);
     //window.print();
+    // save go to show-bill
+    router.push('/show-bill');
      } catch (error) {
       // Error: Alert the user and prevent printing
       console.error('Failed to save bill data:', error);
@@ -400,7 +403,11 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
  const fontSize = clamp(width * 0.026, 20, 28); // like clamp(20px, 2.6vw, 28px)
-
+  // Filter items by selected category
+  const itemData = menu.filter(m => m.category === selectedCategoryName).map(m => ({
+    label: m.name,
+    value: m.id,
+  }));
   return (
    
      <ScrollView style={styles.root}>
@@ -498,9 +505,16 @@ style={{
 <Text style={styles.label}>Mobile</Text>
  <TextInput
                             value={customerMobile}
-                            onChangeText={setCustomerMobile}
+                             onChangeText={(text) => {
+    // Allow only numbers
+    const cleanedText = text.replace(/[^0-9]/g, '');
+    // Limit to 10 digits
+    setCustomerMobile(cleanedText);
+  }}
                             editable={!isBillLocked}
                             placeholder="Optional for walk‑in"
+                            keyboardType="numeric"
+  maxLength={10}
                           />
                       </View>
                </View>
@@ -514,6 +528,36 @@ style={{
               <View style={[styles.row, { alignItems: 'flex-end'}]}> 
                 
                 <View style={[styles.field, { minWidth: 120, flexGrow: 1, flexShrink: 1, flexBasis: '100%' }]}>
+                  <Text  style={styles.label}>Category</Text >
+                   <Dropdown
+                 style={{
+                   height: 50,
+                   width: "auto",
+                   borderColor: "gray",
+                   borderWidth: 1,
+                   borderRadius: 8,
+                   paddingHorizontal: 8,
+                   marginTop: 10,
+                 }}
+                 placeholderStyle={{ fontSize: 14, color: "gray" }}
+                 selectedTextStyle={{ fontSize: 14 , color: "white" }}
+                 inputSearchStyle={{ height: 40, fontSize: 14 }}
+                 data={[...new Set(menu.map((item: { category: string }) => item.category))].map(category => ({
+  label: category,
+  value: category,
+}))}
+                 search
+                 maxHeight={300}
+                 labelField="label"
+                 valueField="value"
+                 placeholder="Select item"
+                 searchPlaceholder="Search item..."
+                 value={selectedCategoryName}
+                 onChange={(item: { value: React.SetStateAction<string>; }) => setselectedCategoryName(item.value)}
+                 disable={isBillLocked}
+               />
+               </View>
+               <View style={[styles.field, { minWidth: 120, flexGrow: 1, flexShrink: 1, flexBasis: '100%' }]}>
                   <Text  style={styles.label}>Item</Text >
                    <Dropdown
                  style={{
@@ -528,10 +572,7 @@ style={{
                  placeholderStyle={{ fontSize: 14, color: "gray" }}
                  selectedTextStyle={{ fontSize: 14 , color: "white" }}
                  inputSearchStyle={{ height: 40, fontSize: 14 }}
-                 data={menu.map((item: { name: any; price: any; id: any; }) => ({
-                   label: `${item.name} — ₹${item.price}`,
-                   value: item.id,
-                 }))}
+                 data={itemData}
                  search
                  maxHeight={300}
                  labelField="label"

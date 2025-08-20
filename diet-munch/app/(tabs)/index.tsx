@@ -23,7 +23,8 @@ export default function Home() {
     { name: "person-add", label: "Add Member", link: "/add-member" },
     { name: "people-outline", label: "Show Member", link: "/show-member" },
     { name: "receipt-outline", label: "Bill", link: "/add-bildetails" },
-    { name: "receipt-outline", label: "Show Bill", link: "/show-bill" }
+    { name: "receipt-outline", label: "Show Bill", link: "/show-bill" },    { name: "card-outline", label: "Add Expenses", link: "/add-expenses" },
+    { name: "pricetag-outline", label: "Show Expenses", link: "/show-expenses" },
   ];
 
   return (

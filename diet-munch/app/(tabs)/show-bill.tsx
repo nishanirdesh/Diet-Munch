@@ -15,7 +15,9 @@ import { apiUrls } from "../constants/api"; // adjust path as per your folder
 const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
 function formatDate(isoDate: string): string {
   const date = new Date(isoDate);
-  return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = date.toLocaleString("en-US", { month: "short" }); // e.g. Aug
+  return `${day}-${month}`;
 }
 type Member = {
  sno: string | number;
@@ -106,6 +108,14 @@ const withAllOption = [
       setRefreshing(false);
     }
   };
+  const totalAmount = filteredMembers.reduce((sum, item) => {
+    const amt = typeof item.bill_amount === "string" ? parseFloat(item.bill_amount) : item.bill_amount;
+    return sum + (isNaN(amt) ? 0 : amt);
+  }, 0);
+  const totalAmountWallet = filteredMembers.reduce((sum, item) => {
+    const amt = typeof item.balance_after === "string" ? parseFloat(item.balance_after) : item.balance_after;
+    return sum + (isNaN(amt) ? 0 : amt);
+  }, 0);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -198,13 +208,15 @@ return (
         }
         ListHeaderComponent={
           <View style={[styles.row, styles.headerRow]}>
-            <Text style={styles.headerCell}>Bill Date</Text>
-            <Text style={styles.headerCell}>Bill No</Text>
+            <Text style={styles.headerCell}>Date</Text>
+            <Text style={styles.headerCell}>B.No</Text>
             <Text style={styles.headerCell}>Name</Text>
             <Text style={styles.headerCell}>Mobile</Text>
-            <Text style={styles.headerCell}>Balance</Text>
+                        <Text style={styles.headerCell}>B.Amt</Text>
+            <Text style={styles.headerCell}>Bal.</Text>
           </View>
         }
+       
         renderItem={({ item, index }) => {
           const backgroundColor =
             item.customer_type === "wallet" ? "#d4edda" : "#f8d7da";
@@ -218,10 +230,23 @@ return (
               <Text style={styles.cell}>{item.billNo}</Text>
               <Text style={styles.cell}>{item.customer_name}</Text>
               <Text style={styles.cell}>{item.customer_mobile}</Text>
+                <Text style={styles.cell}>{item.bill_amount}</Text>
                <Text style={styles.cell}>{item.balance_after}</Text>
             </TouchableOpacity>
           );
         }}
+         ListFooterComponent={
+                <View style={[styles.row, styles.headerRow]}>
+                    <Text style={[styles.cell]}>Total</Text>
+                    <Text style={styles.cell}></Text>
+                     <Text style={styles.cell}></Text>
+                    <Text style={styles.cell}></Text>
+                    <Text style={[styles.cell, styles.boldText]}>
+                      ₹ {totalAmount.toFixed(2)}
+                    </Text>
+                    <Text style={styles.cell}> ₹ {totalAmountWallet.toFixed(2)}</Text>
+                  </View>
+                }
       />
     )}
 
@@ -301,7 +326,9 @@ const styles = StyleSheet.create({
   marginBottom: 10,
 },
 
-
+boldText: {
+    fontWeight: "bold",
+  },
 addButton: {
   backgroundColor: "#007bff",
   paddingVertical: 6,
@@ -314,14 +341,19 @@ addButtonText: {
   fontSize: 14,
   fontWeight: "bold",
 },
-
+totalRow: {
+    flexDirection: "row",
+    backgroundColor: "#d1ecf1",
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { padding: 5, backgroundColor: "#fff" },
-  row: { flexDirection: "row", paddingVertical: 12, borderBottomWidth: 1, borderColor: "#ddd" },
+  row: { flexDirection: "row", paddingVertical: 1, borderBottomWidth: 1, borderColor: "#ddd" },
   headerRow: { backgroundColor: "#007bff" },
-  headerCell: { flex: 1, fontWeight: "bold", color: "#fff", textAlign: "center", fontSize: 16 },
+  headerCell: { flex: 1, fontWeight: "bold", color: "#fff", textAlign: "left", fontSize: 12 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
-  cell: { flex: 1, textAlign: "center", fontSize: 15, color: "#333" },
+  cell: { flex: 1, textAlign: "left", fontSize: 12, color: "#333", borderStyle: "solid", borderWidth: 0.5, borderColor: "#0e0c0cff", padding: 2 },
   filterContainer: { flexDirection: "row", justifyContent: "space-evenly", paddingVertical: 8, backgroundColor: "#f0f0f0" },
   picker: { flex: 1, height: 50 },
   modalContainer: { flex: 1, justifyContent: "center", backgroundColor: "rgba(0,0,0,0.3)" },

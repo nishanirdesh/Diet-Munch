@@ -16,8 +16,8 @@ import {
 } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycby5gAEj7hjTYmPwO66uSPgNWnovT9y_HZbqmVSG9Cz2Ity1Zdn8Gk3jCwalcHBpHfP2/exec";
-
+import { apiUrls } from "../constants/api"; // adjust path as per your folder
+const SHEET_API_URL = apiUrls.expencesUrl; // Use the expencesUrl for saving expenses
 function formatDate(isoDate: string): string {
   const date = new Date(isoDate);
   return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
@@ -59,6 +59,7 @@ export default function TableExpenseScreen() {
         setLoading(true);
       const res = await fetch(SHEET_API_URL);
       const data = await res.json();
+      console.log("Fetched expenses:", data);
       setExpenses(data);
       setLoading(false);
     } catch (error) {

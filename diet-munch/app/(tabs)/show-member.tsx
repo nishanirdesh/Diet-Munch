@@ -126,8 +126,14 @@ const withAllOption = [
     fetchExpenses();
   }, []);
 
-
-
+const handelCancel = () => {
+  if (editingItem) {
+    setEditingItem({    
+      ...editingItem,
+      amount: editingItem.oldAmount // Reset to old amount
+    });
+  }
+}
   const handleEdit = (item: MemberItemEdit) => {
     item.requestName = "UpdateMember"; // Set requestName for edit
     item.oldAmount = item.amount; // Store old amount for comparison
@@ -142,16 +148,25 @@ const handleSelectMember = (selectedValue: string | null) => {
     setFilteredMembers(allMembers.filter(m => String(m.sno) === selectedValue));
   }
 };
+// set amount on cancel button
+
   const mobileRegex = /^[6-9]\d{9}$/;
 
   const handleSave = async () => {
     if (!editingItem) return;
-   
+   const oldAmount = editingItem.oldAmount;
+   const total=editingItem.amount+editingItem.oldAmount;
 editingItem.amount=editingItem.amount+editingItem.oldAmount;
     try {
+      if(total<=oldAmount)
+      {
+        Alert.alert("Validation Error", "Amount cannot be less than or equal to old amount.");
+        return;
+      }
+  
       const mobileRegex = /^[6-9]\d{9}$/; // Indian format
       // check mobile not empty and valid
-      if (!editingItem.mobile || editingItem.mobile.trim() === "") {
+      if (!editingItem.mobile || editingItem.mobile === "") {
         Alert.alert("Validation Error", "Please enter a valid mobile number.");
         return;
       }
@@ -180,7 +195,7 @@ editingItem.amount=editingItem.amount+editingItem.oldAmount;
        setLoading(false); // ✅ Hide loader after save
 
       Alert.alert("Success", "Data updated successfully!");
-    await  fetchExpenses();
+ onRefresh(); // Refresh the list after saving
     } catch (error) {
       console.error("Failed to update:", error);
     }
@@ -229,7 +244,6 @@ return (
             <Text style={styles.headerCell}>SNo</Text>
             <Text style={styles.headerCell}>Name</Text>
             <Text style={styles.headerCell}>Mobile</Text>
-            <Text style={styles.headerCell}>Job</Text>
             <Text style={styles.headerCell}>Amount</Text>
           </View>
         }
@@ -245,7 +259,6 @@ return (
               <Text style={styles.cell}>{item.sno}</Text>
               <Text style={styles.cell}>{item.name}</Text>
               <Text style={styles.cell}>{item.mobile}</Text>
-              <Text style={styles.cell}>{item.job}</Text>
                <Text style={styles.cell}>{item.amount}</Text>
             </TouchableOpacity>
           );
@@ -311,7 +324,7 @@ return (
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              onPress={() => setEditModalVisible(false)}
+              onPress={(handelCancel) => setEditModalVisible(false)}
               style={[styles.button, { backgroundColor: "#ccc" }]}
             >
               <Text>Cancel</Text>
@@ -358,9 +371,9 @@ addButtonText: {
   container: { padding: 5, backgroundColor: "#fff" },
   row: { flexDirection: "row", paddingVertical: 12, borderBottomWidth: 1, borderColor: "#ddd" },
   headerRow: { backgroundColor: "#007bff" },
-  headerCell: { flex: 1, fontWeight: "bold", color: "#fff", textAlign: "center", fontSize: 16 },
+  headerCell: { flex: 1, fontWeight: "bold", color: "#fff", textAlign: "left", fontSize: 12 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
-  cell: { flex: 1, textAlign: "center", fontSize: 15, color: "#333" },
+  cell: { flex: 1, textAlign: "left", fontSize: 12, color: "#333" },
   filterContainer: { flexDirection: "row", justifyContent: "space-evenly", paddingVertical: 8, backgroundColor: "#f0f0f0" },
   picker: { flex: 1, height: 50 },
   modalContainer: { flex: 1, justifyContent: "center", backgroundColor: "rgba(0,0,0,0.3)" },
