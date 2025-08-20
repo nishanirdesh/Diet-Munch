@@ -1,26 +1,24 @@
 
+import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dropdown } from "react-native-element-dropdown";
 import { TextInput } from "react-native-paper";
-import { RadioButton } from "react-native-paper";
-import * as Linking from "expo-linking";
-import { members } from "./member"; // adjust path as per your folder
-import { menu } from "./menu"; // adjust path as per your folder
+// call api.ts to get api urls
+import { apiUrls } from "../constants/api"; // adjust path as per your folder
+
 import {
-  FlatList,
+  ActivityIndicator,
+  Dimensions,
   GestureResponderEvent,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
-    StyleSheet,
-  View,
   TouchableOpacity,
-  Dimensions,
-  ActivityIndicator,
-  Button
+  View
 } from "react-native";
-import { black, white } from "react-native-paper/lib/typescript/styles/themes/v2/colors";
+import { menu } from "./menu"; // adjust path as per your folder
 const { width } = Dimensions.get("window");
 export const Colors = {
   bg: "#0b1020",
@@ -54,12 +52,17 @@ interface CartItem {
   price: number;
 }
 
-interface Member {
-  id: number;
+type MemberItem = {
+  sno: string | number;
   name: string;
-  mobile: string;
-  balance: number;
-}
+  mobile?: string | number;
+  dob: string ;
+  job: string;
+  location: string;
+    amount: number;
+  ismonthly: number;
+  resuestName: string;
+};
 
 
 export default function TableExpenseScreen() {
@@ -67,7 +70,7 @@ export default function TableExpenseScreen() {
     const router = useRouter();
   const [billNo] = useState(() => 'BILL-' + Date.now().toString().slice(-8));
   const [customerType, setCustomerType] = useState<'wallet' | 'walkin'>('wallet');
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<MemberItem | null>(null);
   const [memberSearch, setMemberSearch] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
@@ -78,8 +81,11 @@ export default function TableExpenseScreen() {
   // const [paymentMode, setPaymentMode] = useState<'wallet' | 'cash' | 'card' | 'upi'>('wallet');
     const [paymentMode, setPaymentMode] = useState<'wallet' | 'cash' | 'upi'>('wallet');
   const [fromWallet, setFromWallet] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [cashAmt, setCashAmt] = useState(0);
   // const [cardAmt, setCardAmt] = useState(0);
+    const [allMembers, setAllMembers] =useState<MemberItem[]>([]);
+  const [filteredMembers, setFilteredMembers] = useState<MemberItem[]>([]);
   const [upiAmt, setUpiAmt] = useState(0);
   const [isBillLocked, setIsBillLocked] = useState(false);
 const [loading, setLoading] = useState(false);
@@ -90,7 +96,7 @@ const [loading, setLoading] = useState(false);
     const g = +(s + t).toFixed(2);
     return { subtotal: s, tax: t, grandTotal: g };
   }, [cart]);
-const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TYCi2NJdtfsh3it3JDTzSU8uuLyK-zZa8Ra3J2H0F4V/exec";
+const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
   const paidAmount = useMemo(() => {
     //return +(fromWallet + cashAmt + cardAmt + upiAmt).toFixed(2);
         return +(fromWallet + cashAmt  + upiAmt).toFixed(2);
@@ -103,12 +109,32 @@ const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TY
   }, [grandTotal, paidAmount]);
 
   const remainingBalance = useMemo(() => {
-    const bal = selectedMember?.balance || 0;
+    const bal = selectedMember?.amount || 0;
     return +(bal - fromWallet).toFixed(2);
   }, [selectedMember, fromWallet]);
-
+  const fetchMembers = async () => {
+    try {
+      const res = await fetch(apiUrl+ "?requestName=showMembers");
+      const data = await res.json();
+      console.log("Fetched members:", data);
+   setAllMembers(data);
+  setFilteredMembers(data); // start by showing all
+  
+    } catch (error) {
+      console.error("Failed to fetch expenses:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+   const onRefresh = useCallback(() => {
+      setRefreshing(true);
+      fetchMembers();
+    }, []);
+  
   // --- Effects ---
   useEffect(() => {
+    fetchMembers();
     const item = menu.find((i: { id: any; }) => i.id === selectedItemId);
     if (item) setPrice(item.price);
   }, [selectedItemId]);
@@ -120,7 +146,7 @@ const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TY
     let newUpi = 0;
 
     const total = grandTotal;
-    const bal = selectedMember?.balance || 0;
+    const bal = selectedMember?.amount || 0;
 
     if (customerType === 'wallet') {
       newFromWallet = Math.min(bal, total);
@@ -157,7 +183,7 @@ const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TY
   //   }
   // };
   const handleMemberSearch = (value: string) => {
-    const memberdetails = members.find(m => m.id === parseInt(value));  
+    const memberdetails = allMembers.find(m => m.sno === parseInt(value));  
 //  const text = String(value).trim(); // convert to string
   
   console.log('Searching for member:', memberdetails);
@@ -173,17 +199,20 @@ debugger;
 
   if (memberdetails) {
     setCustomerName(memberdetails.name);
-    setCustomerMobile(memberdetails.mobile);
+    setCustomerMobile(memberdetails.mobile?.toString() || '');
   }
 };
 // Instead of expecting an event, just take the value directly
 const handleCustomerTypeChange = (value: string) => {
+
      const type = value as 'wallet' | 'walkin';
   setCustomerType(type);
     setPaymentMode(type === 'wallet' ? 'wallet' : 'cash');
     if (type === 'walkin') {
       setSelectedMember(null);
       setMemberSearch('');
+      setCustomerName('');
+       setCustomerMobile('');
       setFromWallet(0);
     }
 };
@@ -225,7 +254,7 @@ const handleCustomerTypeChange = (value: string) => {
 
   const buildWaMessage = () => {
     const name = (customerName || selectedMember?.name || 'Customer').trim();
-    const mobile = (customerMobile || selectedMember?.mobile || '').trim();
+    const mobile = (customerMobile || selectedMember?.mobile || '');
     const header = `Hello ${name},%0AYour bill from *Diet Munch*` + (billNo ? ` (Bill #${billNo})` : '') + `%0A` + nowStr();
 
     const items = cart.length ? cart.map(r => `• _${r.name}_ x${r.qty} = ${fmt(r.qty * r.price)}`).join('%0A') : '—';
@@ -233,6 +262,7 @@ const handleCustomerTypeChange = (value: string) => {
     const parts = [];
     if (fromWallet > 0) parts.push(`Wallet ${fmt(fromWallet)}`);
     if (cashAmt > 0) parts.push(`Cash ${fmt(cashAmt)}`);
+    if(remainingBalance > 0 && paymentMode==="wallet") parts.push(`Balance ${fmt(remainingBalance)}`);
     // if (cardAmt > 0) parts.push(`Card ${fmt(cardAmt)}`);
     if (upiAmt > 0) parts.push(`UPI ${fmt(upiAmt)}`);
     const payLine = parts.length ? parts.join(' + ') : '—';
@@ -261,10 +291,10 @@ const handleCustomerTypeChange = (value: string) => {
       customer_type: customerType,
       customer_name: customerName || selectedMember?.name || null,
       customer_mobile: customerMobile || selectedMember?.mobile || null,
-      member_id: selectedMember?.id || null,
-      balance_before: selectedMember?.balance || null,
+      member_id: selectedMember?.sno || null,
+      balance_before: selectedMember?.amount || null,
       // Calculate balance after transaction for the database
-      balance_after: selectedMember ? selectedMember.balance - fromWallet : null,
+      balance_after: selectedMember ? selectedMember.amount - fromWallet : null,
       subtotal: subtotal,
       tax: tax,
       grand_total: grandTotal,
@@ -321,7 +351,7 @@ if(response.ok) {
     if (selectedMember && fromWallet > 0) {
       // In a real app, this would be an API call.
       // For this example, we'll manually update the state.
-      setSelectedMember(prev => prev ? { ...prev, balance: prev.balance - fromWallet } : null);
+      setSelectedMember(prev => prev ? { ...prev, balance: prev.amount - fromWallet } : null);
     }
     setLoading(false);
     setIsBillLocked(true);
@@ -341,8 +371,8 @@ const handleShareOnWhatsApp = () => {
     return;
   }
 
-  phone = normalizePhone(phone);
-  const encodedMsg = encodeURIComponent(msg);
+  phone = normalizePhone(phone.toString());
+  const encodedMsg = encodeURIComponent(msg.replace(/%0A/g, '\n'));
 
   const url = `whatsapp://send?phone=${phone}&text=${encodedMsg}`;
 
@@ -394,7 +424,7 @@ function clamp(value: number, min: number, max: number) {
                         {/* Wallet Member */}
                         <TouchableOpacity
                           style={[styles.radio, customerType === "wallet" && styles.radioSelected]}
-                          onPress={() => setCustomerType("wallet")}
+                          onPress={() => handleCustomerTypeChange("wallet")}
                         >
                           <View style={[styles.circle, customerType === "wallet" && styles.circleActive]} />
                           <Text style={styles.label}>Wallet Member</Text>
@@ -403,7 +433,7 @@ function clamp(value: number, min: number, max: number) {
                         {/* Other / Walk-in */}
                         <TouchableOpacity
                           style={[styles.radio, customerType === "walkin" && styles.radioSelected]}
-                          onPress={() => setCustomerType("walkin")}
+                          onPress={() => handleCustomerTypeChange("walkin")}
                         >
                           <View style={[styles.circle, customerType === "walkin" && styles.circleActive]} />
                           <Text style={styles.label}>Other / Walk-in</Text>
@@ -431,9 +461,9 @@ style={{
                  placeholderStyle={{ fontSize: 14, color: "gray" }}
                  selectedTextStyle={{ fontSize: 14, color: "white" }}
                  inputSearchStyle={{ height: 40, fontSize: 14 }}
-                 data={members.map((item) => ({
-                   label: `${item.id} — ₹${item.name} (${item.mobile})`,
-                   value: item.id,
+                 data={allMembers.map((item) => ({
+                   label: `${item.sno} — ₹${item.name} (${item.mobile})`,
+                   value: item.sno.toString(), // Ensure value is a string
                  }))}
                  search
                 
@@ -451,7 +481,7 @@ style={{
                   {/* Wallet Balance */}
                   <View style={[styles.field, { flexGrow: 1, flexShrink: 1, flexBasis: '100%' }]} >  
                        <Text style={styles.label}>Wallet Balance</Text>
-                          <TextInput  value={fmt(selectedMember?.balance || 0)} editable={false} />
+                          <TextInput  value={fmt(selectedMember?.amount || 0)} editable={false} />
              
                     </View>
                     {/* Customer Name */}
@@ -464,6 +494,15 @@ style={{
                             placeholder="Customer name (optional)"
                           />
                       </View>
+                       <View style={[styles.field, { flexGrow: 1, flexShrink: 1, flexBasis: '100%' }]}>  
+<Text style={styles.label}>Mobile</Text>
+ <TextInput
+                            value={customerMobile}
+                            onChangeText={setCustomerMobile}
+                            editable={!isBillLocked}
+                            placeholder="Optional for walk‑in"
+                          />
+                      </View>
                </View>
            </View>
 
@@ -473,6 +512,7 @@ style={{
           <View style={styles.cardBody}>
             <Text style={styles.cardTitle}>Cart Items</Text>
               <View style={[styles.row, { alignItems: 'flex-end'}]}> 
+                
                 <View style={[styles.field, { minWidth: 120, flexGrow: 1, flexShrink: 1, flexBasis: '100%' }]}>
                   <Text  style={styles.label}>Item</Text >
                    <Dropdown
@@ -636,51 +676,70 @@ style={{
                 </View>
               </View>
             ) : (
-              <View id="walkinOptions">
-                <View style={styles.radioRow}>
-                  <TouchableOpacity
-                          style={[styles.radio, customerType === "walkin" && styles.radioSelected]}
-                          onPress={() => setPaymentMode("cash")}
-                        >
-                          <View style={[styles.circle, customerType === "walkin" && styles.circleActive]} />
-                          <Text style={styles.label}>Cash</Text>
-                        </TouchableOpacity>
-                  {/* <Text  style={styles.radio}>
-                   <RadioButton
-    value="cash"
-    status={paymentMode === "cash" ? "checked" : "unchecked"}
-    onPress={() => setPaymentMode("cash")}
-    disabled={isBillLocked}
-  />
-  <Text>Cash</Text>
-                  </Text > */}
-                  {/* <Text  style={styles.radio}>
-                   <RadioButton
-    value="card"
-    status={paymentMode === "card" ? "checked" : "unchecked"}
-    onPress={() => setPaymentMode("card")}
-    disabled={isBillLocked}
-  />
-  <Text>Card</Text>
-                  </Text > */}
-                  {/* <Text  style={styles.radio}>
-                     <RadioButton
-    value="upi"
-    status={paymentMode === "upi" ? "checked" : "unchecked"}
-    onPress={() => setPaymentMode("upi")}
-    disabled={isBillLocked}
-  />
-  <Text>UPI</Text>
-                  </Text > */}
-                  <TouchableOpacity
-                          style={[styles.radio, customerType === "walkin" && styles.radioSelected]}
+  //             <View id="walkinOptions">
+  //               <View style={styles.radioRow}>
+  //                 <TouchableOpacity
+  //                         style={[styles.radio, customerType === "walkin" && styles.radioSelected]}
+  //                         onPress={() => setPaymentMode("cash")}
+  //                       >
+  //                         <View style={[styles.circle, customerType === "walkin" && styles.circleActive]} />
+  //                         <Text style={styles.label}>Cash</Text>
+  //                       </TouchableOpacity>
+  //                 {/* <Text  style={styles.radio}>
+  //                  <RadioButton
+  //   value="cash"
+  //   status={paymentMode === "cash" ? "checked" : "unchecked"}
+  //   onPress={() => setPaymentMode("cash")}
+  //   disabled={isBillLocked}
+  // />
+  // <Text>Cash</Text>
+  //                 </Text > */}
+  //                 {/* <Text  style={styles.radio}>
+  //                  <RadioButton
+  //   value="card"
+  //   status={paymentMode === "card" ? "checked" : "unchecked"}
+  //   onPress={() => setPaymentMode("card")}
+  //   disabled={isBillLocked}
+  // />
+  // <Text>Card</Text>
+  //                 </Text > */}
+  //                 {/* <Text  style={styles.radio}>
+  //                    <RadioButton
+  //   value="upi"
+  //   status={paymentMode === "upi" ? "checked" : "unchecked"}
+  //   onPress={() => setPaymentMode("upi")}
+  //   disabled={isBillLocked}
+  // />
+  // <Text>UPI</Text>
+  //                 </Text > */}
+  //                 <TouchableOpacity
+  //                         style={[styles.radio, customerType === "walkin" && styles.radioSelected]}
+  //                         onPress={() => setPaymentMode("upi")}
+  //                       >
+  //                         <View style={[styles.circle, customerType === "walkin" && styles.circleActive]} />
+  //                         <Text style={styles.label}>UPI</Text>
+  //                       </TouchableOpacity>
+  //               </View>
+  //             </View>
+   <View style={styles.radioRow}  id="walkinOptions">
+                        {/* Wallet Member */}
+                        <TouchableOpacity
+                          style={[styles.radio, customerType === "walkin" && paymentMode=="upi" && styles.radioSelected]}
                           onPress={() => setPaymentMode("upi")}
                         >
-                          <View style={[styles.circle, customerType === "walkin" && styles.circleActive]} />
+                          <View style={[styles.circle, customerType === "walkin" && paymentMode=="upi" && styles.circleActive]} />
                           <Text style={styles.label}>UPI</Text>
                         </TouchableOpacity>
-                </View>
-              </View>
+
+                        {/* Other / Walk-in */}
+                        <TouchableOpacity
+                          style={[styles.radio, customerType === "walkin" && paymentMode=="cash" && styles.radioSelected]}
+                          onPress={() => setPaymentMode("cash")}
+                        >
+                          <View style={[styles.circle, customerType === "walkin" && paymentMode=="cash" && styles.circleActive]} />
+                          <Text style={styles.label}>Cash</Text>
+                        </TouchableOpacity>
+                      </View>
             )}
           
             <View style={styles.totals}>
@@ -794,7 +853,7 @@ style={{
 </View>
             <View style={styles.field}>
               <Text style={styles.label}>Member ID:</Text>
-               <Text id="memberIdLabel" style={styles.label} >{selectedMember?.id || '—'} </Text>
+               <Text id="memberIdLabel" style={styles.label} >{selectedMember?.sno || '—'} </Text>
                </View>
           </View>
         </View>

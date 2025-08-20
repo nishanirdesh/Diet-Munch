@@ -14,8 +14,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-
-const apiUrl="https://script.google.com/macros/s/AKfycbxLBIFnx7h-cCsVCTUphdSC0TYCi2NJdtfsh3it3JDTzSU8uuLyK-zZa8Ra3J2H0F4V/exec";
+import { apiUrls } from "../constants/api"; // adjust path as per your folder
+const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
 
 type Member = {
   Id: string | number;
@@ -51,14 +51,6 @@ export default function TableExpenseScreen() {
   const [loading, setLoading] = useState(false);
   
 
- 
-
-
-
-
-
-
-
   const handleSubmit = async () => {
     if (!name || !mobile) {
       Alert.alert("Validation Error", "Please enter required data.");
@@ -66,14 +58,29 @@ export default function TableExpenseScreen() {
     }
 
     const formattedDate = dob.toISOString().split("T")[0];
-    const memberObj = { dob: formattedDate, name: name.trim(), mobile: mobile.trim() ,job: job.trim(),ismonthly: ismonthly ? 1 : 0, location: location.trim(),amount: amount.trim()};
+    const memberObj = { dob: formattedDate, name: name.trim(), mobile: mobile.trim() ,job: job.trim(),ismonthly: ismonthly ? 1 : 0, location: location.trim(),amount: amount.trim(),requestName:"SaveMember" };
 
   setLoading(true); // start loading
 
   try {
+    //check mobile number not empty and valid
+  if (!mobile) {
+    Alert.alert("Validation Error", "Please enter a valid mobile number.");
+    return;
+  }
     const mobileRegex = /^[6-9]\d{9}$/; // Indian format
   if (!mobileRegex.test(mobile)) {
     Alert.alert("Invalid Mobile Number", "Please enter a valid 10-digit mobile number.");
+    return;
+  }
+  // Check if amount is provided when ismonthly is true
+  if (ismonthly && !amount) {
+    Alert.alert("Validation Error", "Please enter the amount for monthly members.");
+    return;
+  }
+  // check name not empty
+  if (!name.trim()) {
+    Alert.alert("Validation Error", "Please enter a valid name.");
     return;
   }
     const res = await fetch(apiUrl+"?requestName=SaveMember", {
@@ -165,7 +172,7 @@ return (
 
     <View style={{ flexDirection: "row", alignItems: "center", marginVertical: 8 }}>
       <Checkbox value={ismonthly} onValueChange={setIsMonthly} style={styles.checkbox} />
-      <Text style={styles.label}>Is Monthly?</Text>
+      <Text style={styles.label}>Is Wallet?</Text>
     </View>
 
     {ismonthly && (

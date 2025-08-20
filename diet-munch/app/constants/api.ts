@@ -1,1 +1,4 @@
-export const sheet_api_url="https://script.google.com/macros/s/AKfycbzCZEE_E1je6sDxiX1G-IHeziCQJIh1R43CdXcU2aohap8rI9jymJRQwnFn3ArmSH_0/exec";//change
+//create list of api urls with request names
+export const apiUrls = {    
+    memberUrl: "https://script.google.com/macros/s/AKfycbzigGQsDMiXj6GseLSfqkjpxeYB3OrreRgqpUaAXQE-LmCnIMsavt06nnQvNgQzxwN2/exec"
+    };

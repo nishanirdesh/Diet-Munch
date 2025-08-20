@@ -22,8 +22,8 @@ export default function Home() {
     { name: "dashboard", label: "Dashboard", link: "/dashboard" },
     { name: "person-add", label: "Add Member", link: "/add-member" },
     { name: "people-outline", label: "Show Member", link: "/show-member" },
-    { name: "receipt-outline", label: "Bill", link: "/add-bildetails" }
-   
+    { name: "receipt-outline", label: "Bill", link: "/add-bildetails" },
+    { name: "receipt-outline", label: "Show Bill", link: "/show-bill" }
   ];
 
   return (

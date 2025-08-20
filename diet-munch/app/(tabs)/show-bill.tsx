@@ -3,13 +3,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Button,
   FlatList,
-  Modal,
   RefreshControl,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -32,29 +29,18 @@ type Member = {
   requestName: string;
 };
 
-type MemberItem = {
-  sno: string | number;
-  name: string;
-  mobile?: string;
-  dob: string ;
-  job: string;
-  location: string;
-    amount: string | number;
-  ismonthly: number;
+type ShowBill = {
+  billNo: string;
+  customer_type: string;
+  customer_name: string;
+  customer_mobile: string ;
+  balance_after: string;
+  bill_date: string;
+  bill_amount: string;
   requestName: string;
+  member_id: string | number;
 };
-type MemberItemEdit = {
-  sno: string | number;
-  name: string;
-  mobile?: string;
-  dob: string ;
-  job: string;
-  location: string;
-    amount: number;
-  ismonthly: number;
-  requestName: string;
-  oldAmount: number;
-};
+
 export default function TableExpenseScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -70,12 +56,12 @@ export default function TableExpenseScreen() {
   const [refreshing, setRefreshing] = useState(false);
  
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingItem, setEditingItem] = useState<MemberItemEdit | null>(null);
+  const [editingItem, setEditingItem] = useState<ShowBill | null>(null);
  const [open, setOpen] = useState(false);
   const [value, setValue] = useState<string | null>(null);
   const [items, setItems] = useState<{ label: string; value: string }[]>([]);
-  const [allMembers, setAllMembers] =useState<MemberItemEdit[]>([]);
-const [filteredMembers, setFilteredMembers] = useState<MemberItemEdit[]>([]);
+  const [allMembers, setAllMembers] =useState<ShowBill[]>([]);
+const [filteredMembers, setFilteredMembers] = useState<ShowBill[]>([]);
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   useEffect(() => {
@@ -108,7 +94,7 @@ const withAllOption = [
 
   const fetchExpenses = async () => {
     try {
-      const res = await fetch(apiUrl+ "?requestName=showMembers");
+      const res = await fetch(apiUrl+ "?requestName=showBill");
       const data = await res.json();
    setAllMembers(data);
   setFilteredMembers(data); // start by showing all
@@ -128,10 +114,8 @@ const withAllOption = [
 
 
 
-  const handleEdit = (item: MemberItemEdit) => {
+  const handleEdit = (item: ShowBill) => {
     item.requestName = "UpdateMember"; // Set requestName for edit
-    item.oldAmount = item.amount; // Store old amount for comparison
-    item.amount = 0; // Reset amount for editing
     setEditingItem(item);
     setEditModalVisible(true);
   };
@@ -139,29 +123,17 @@ const handleSelectMember = (selectedValue: string | null) => {
   if (!selectedValue || selectedValue === "ALL") {
     setFilteredMembers(allMembers); // Show all members
   } else {
-    setFilteredMembers(allMembers.filter(m => String(m.sno) === selectedValue));
+    setFilteredMembers(allMembers.filter(m => String(m.member_id) === selectedValue));
   }
 };
   const mobileRegex = /^[6-9]\d{9}$/;
 
   const handleSave = async () => {
     if (!editingItem) return;
-   
-editingItem.amount=editingItem.amount+editingItem.oldAmount;
+
     try {
       const mobileRegex = /^[6-9]\d{9}$/; // Indian format
-      // check mobile not empty and valid
-      if (!editingItem.mobile || editingItem.mobile.trim() === "") {
-        Alert.alert("Validation Error", "Please enter a valid mobile number.");
-        return;
-      }
-      //check amount not empty and valid
-      if (isNaN(editingItem.amount) || editingItem.amount <= 0)
-      {
-        Alert.alert("Validation Error", "Please enter a valid amount.");
-        return;
-      }
- if (!mobileRegex.test((editingItem.mobile ?? '').toString())) 
+ if (!mobileRegex.test((editingItem.customer_mobile ?? '').toString())) 
     {
     Alert.alert("Invalid Mobile Number", "Please enter a valid 10-digit mobile number edit.");
     return;
@@ -188,12 +160,12 @@ editingItem.amount=editingItem.amount+editingItem.oldAmount;
 return (
   <>
 <View style={styles.headerContainer}>
-      <Text style={styles.title}>BMYB Members</Text>
+      <Text style={styles.title}>Bill Details</Text>
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => router.push("/add-member")} // Path to Add Member page
+        onPress={() => router.push("/add-bildetails")} // Path to Add Member page
       >
-        <Text style={styles.addButtonText}>+ Add Member</Text>
+        <Text style={styles.addButtonText}>+ Add Bill</Text>
       </TouchableOpacity>
     </View>
 
@@ -226,27 +198,27 @@ return (
         }
         ListHeaderComponent={
           <View style={[styles.row, styles.headerRow]}>
-            <Text style={styles.headerCell}>SNo</Text>
+            <Text style={styles.headerCell}>Bill Date</Text>
+            <Text style={styles.headerCell}>Bill No</Text>
             <Text style={styles.headerCell}>Name</Text>
             <Text style={styles.headerCell}>Mobile</Text>
-            <Text style={styles.headerCell}>Job</Text>
-            <Text style={styles.headerCell}>Amount</Text>
+            <Text style={styles.headerCell}>Balance</Text>
           </View>
         }
         renderItem={({ item, index }) => {
           const backgroundColor =
-            item.ismonthly === 1 ? "#d4edda" : "#f8d7da";
+            item.customer_type === "wallet" ? "#d4edda" : "#f8d7da";
 
           return (
             <TouchableOpacity
               onPress={() => handleEdit(item)}
               style={[styles.row, { backgroundColor }]}
             >
-              <Text style={styles.cell}>{item.sno}</Text>
-              <Text style={styles.cell}>{item.name}</Text>
-              <Text style={styles.cell}>{item.mobile}</Text>
-              <Text style={styles.cell}>{item.job}</Text>
-               <Text style={styles.cell}>{item.amount}</Text>
+              <Text style={styles.cell}>{formatDate(item.bill_date)}</Text>
+              <Text style={styles.cell}>{item.billNo}</Text>
+              <Text style={styles.cell}>{item.customer_name}</Text>
+              <Text style={styles.cell}>{item.customer_mobile}</Text>
+               <Text style={styles.cell}>{item.balance_after}</Text>
             </TouchableOpacity>
           );
         }}
@@ -254,14 +226,22 @@ return (
     )}
 
     {/* Modal */}
-    <Modal visible={editModalVisible} transparent={true} animationType="slide">
+    {/* <Modal visible={editModalVisible} transparent={true} animationType="slide">
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Update Wallet</Text>
-          <Text style={styles.label}>Mobile</Text>
- <TextInput
+          <Text style={styles.modalTitle}>Edit Expense</Text>
+
+          <TextInput
             style={styles.input}
-            value={editingItem?.mobile?.toString()}
+            value={editingItem?.customer_mobile?.toString()}
+            onChangeText={(text) =>
+              setEditingItem((prev) => prev && { ...prev, name: text })
+            }
+          />
+
+          <TextInput
+            style={styles.input}
+            value={editingItem?.customer_mobile?.toString()}
             keyboardType="numeric"
             maxLength={10}
             onChangeText={(text) => {
@@ -281,33 +261,14 @@ return (
               }
             }}
           />
-       
-            <Text style={styles.label}>Wallet Amount</Text>
-             <TextInput
+
+          <TextInput
             style={styles.input}
-             keyboardType="numeric"
-             editable={false} // Make it read-only
-            value={editingItem?.oldAmount?.toString()}
+            value={editingItem?.customer_name?.toString()}
             onChangeText={(text) =>
-              setEditingItem((prev) => prev && { ...prev, oldAmount: Number(text) })
+              setEditingItem((prev) => prev && { ...prev, job: text })
             }
           />
-               <Text style={styles.label}>Amount</Text>
-             <TextInput
-            style={styles.input}
-             keyboardType="numeric"
-             
-
-            onChangeText={(text) =>
-              setEditingItem((prev) => prev && { ...prev, amount: Number(text) })
-            }
-          />
-            
-         
-
-         
-
-        
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -325,7 +286,7 @@ return (
           </View>
         </View>
       </View>
-    </Modal>
+    </Modal> */}
   </>
 );
 
