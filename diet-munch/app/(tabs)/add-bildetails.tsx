@@ -187,7 +187,7 @@ const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
     const memberdetails = allMembers.find(m => m.sno === parseInt(value));  
 //  const text = String(value).trim(); // convert to string
   
-  console.log('Searching for member:', memberdetails);
+ 
 debugger;
 
   setMemberSearch(value);
@@ -198,7 +198,14 @@ debugger;
 
   setSelectedMember(memberdetails || null);
 
-  if (memberdetails) {
+  if (memberdetails && Number(memberdetails.sno)===0) {
+     console.log('Searching for member:', memberdetails);
+    setCustomerName('');
+    setCustomerMobile('');
+  }
+  else
+    if (memberdetails)  {
+     console.log('Searching for member:', memberdetails);
     setCustomerName(memberdetails.name);
     setCustomerMobile(memberdetails.mobile?.toString() || '');
   }
@@ -273,14 +280,24 @@ const handleCustomerTypeChange = (value: string) => {
   };
 
   const handleConfirm = async () => {
-    if (cart.length === 0) {
-      alert('Cart is empty');
-      return;
-    }
     if (customerType === 'wallet' && !selectedMember) {
       alert('Please select a wallet member.');
       return;
     }
+    if (customerType === 'wallet' && selectedMember?.sno === 0) {
+      alert('Please select a wallet member.Do not select none member?');
+      return;
+    }
+    //if customerType is walkin, d customerMobile are required
+    if (customerType === 'walkin' && !customerMobile) {
+      alert('Please enter customer mobile number for walk-in customers.');
+      return;
+    }
+    if (cart.length === 0) {
+      alert('Cart is empty');
+      return;
+    }
+    
     if (Math.abs(dueAmount) > 0.009) {
       alert('Payment does not match total. Please adjust amounts.');
       return;
@@ -293,14 +310,14 @@ const handleCustomerTypeChange = (value: string) => {
       customer_name: customerName || selectedMember?.name || null,
       customer_mobile: customerMobile || selectedMember?.mobile || null,
       member_id: selectedMember?.sno || null,
-      balance_before: selectedMember?.amount || null,
+      balance_before: (selectedMember && customerType=="wallet")?selectedMember.amount :null,
       // Calculate balance after transaction for the database
-      balance_after: selectedMember ? selectedMember.amount - fromWallet : null,
+      balance_after: (selectedMember && customerType=="wallet") ? selectedMember.amount - fromWallet : null,
       subtotal: subtotal,
       tax: tax,
       grand_total: grandTotal,
       payment_mode: paymentMode,
-      amount_wallet: fromWallet,
+      amount_wallet:(selectedMember && customerType=="wallet")?fromWallet :null,
       amount_cash: cashAmt,
       // amount_card: cardAmt,
       amount_upi: upiAmt,
@@ -486,11 +503,13 @@ style={{
       />
                   </View>
                   {/* Wallet Balance */}
+                  {customerType === "wallet" && (
                   <View style={[styles.field, { flexGrow: 1, flexShrink: 1, flexBasis: '100%' }]} >  
                        <Text style={styles.label}>Wallet Balance</Text>
                           <TextInput  value={fmt(selectedMember?.amount || 0)} editable={false} />
              
                     </View>
+                  )}
                     {/* Customer Name */}
                     <View style={[styles.field, { flexGrow: 1, flexShrink: 1, flexBasis: '100%' }]}>  
 <Text style={styles.label}>Customer Name</Text>
@@ -512,7 +531,7 @@ style={{
     setCustomerMobile(cleanedText);
   }}
                             editable={!isBillLocked}
-                            placeholder="Optional for walk‑in"
+                            placeholder="Customer mobile"
                             keyboardType="numeric"
   maxLength={10}
                           />

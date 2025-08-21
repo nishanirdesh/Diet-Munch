@@ -93,7 +93,7 @@ export default function TableExpenseScreen() {
 
   const handleSave = async () => {
     if (!editingItem) return;
-
+setLoading(true); // ✅ Show loader
     try {
       
 
@@ -102,7 +102,7 @@ export default function TableExpenseScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingItem),
       });
-    setLoading(true); // ✅ Show loader
+    
       await response.text();
       setEditModalVisible(false);
       fetchExpenses();
