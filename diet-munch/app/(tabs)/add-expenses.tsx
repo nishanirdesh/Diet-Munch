@@ -95,7 +95,7 @@ setLoading(true); // start loading
 
     {/* Header */}
     <View style={styles.headerRow}>
-      <Text style={styles.title}>BMYB Members</Text>
+      <Text style={styles.title}>Add Expenses</Text>
       <TouchableOpacity
         style={styles.linkButton}
         onPress={() => router.push("/show-expenses")}

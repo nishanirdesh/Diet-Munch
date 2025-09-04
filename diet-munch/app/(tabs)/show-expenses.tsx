@@ -119,7 +119,7 @@ return (
 
     {/* Header */}
     <View style={styles.headerBar}>
-      <Text style={styles.pageTitle}>BMYB Members</Text>
+      <Text style={styles.pageTitle}>Show Expenses</Text>
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => router.push("/add-expenses")}

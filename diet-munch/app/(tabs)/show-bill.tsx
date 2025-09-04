@@ -3,7 +3,9 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Button,
   FlatList,
+  Modal,
   RefreshControl,
   StyleSheet,
   Text,
@@ -37,10 +39,13 @@ type ShowBill = {
   customer_name: string;
   customer_mobile: string ;
   balance_after: string;
+  payment_mode: string;
   bill_date: string;
   bill_amount: string;
   requestName: string;
   member_id: string | number;
+  paymentMode: string;
+  id:  number;
 };
 
 export default function TableExpenseScreen() {
@@ -63,10 +68,13 @@ export default function TableExpenseScreen() {
   const [value, setValue] = useState<string | null>(null);
   const [items, setItems] = useState<{ label: string; value: string }[]>([]);
   const [allMembers, setAllMembers] =useState<ShowBill[]>([]);
+ 
 const [filteredMembers, setFilteredMembers] = useState<ShowBill[]>([]);
+    const [paymentMode, setPaymentMode] = useState<'cash' | 'upi' >('cash'); // Default to 'cash'
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   useEffect(() => {
+   
     fetchExpenses();
        fetch(apiUrl+ "?requestName=showMembers")
       .then((res) => res.json())
@@ -77,6 +85,7 @@ const [filteredMembers, setFilteredMembers] = useState<ShowBill[]>([]);
   label: member.name,
   value: String(member.sno), // 👈 force value to be a string
 }));
+    
 // Insert "All Members" at the top
 const withAllOption = [
   { label: "All Members", value: "ALL" }, // 👈 special value
@@ -93,6 +102,7 @@ const withAllOption = [
   }, []);
  
 
+// make 
 
   const fetchExpenses = async () => {
     try {
@@ -122,10 +132,20 @@ const withAllOption = [
     fetchExpenses();
   }, []);
 
+const handlePendingRadio = (value: string) => {
 
+     const type = value as 'cash' | 'upi';
+  setPaymentMode(type);
+
+  if (editingItem) {
+    setEditingItem({ ...editingItem, paymentMode: type });
+  }
+};
 
   const handleEdit = (item: ShowBill) => {
-    item.requestName = "UpdateMember"; // Set requestName for edit
+    item.requestName = "UpdateBill"; // Set requestName for edit
+
+    
     setEditingItem(item);
     setEditModalVisible(true);
   };
@@ -136,21 +156,24 @@ const handleSelectMember = (selectedValue: string | null) => {
     setFilteredMembers(allMembers.filter(m => String(m.member_id) === selectedValue));
   }
 };
-  const mobileRegex = /^[6-9]\d{9}$/;
+ 
 
   const handleSave = async () => {
+    alert("Saving item: " + JSON.stringify(editingItem));
     if (!editingItem) return;
-
+if(editingItem.customer_type === "walkin" && (editingItem.payment_mode !== "pending")) {
+  Alert.alert("Validation Error", "Please select a valid payment mode for walk-in customers.");
+  return;
+}
+if(!editingItem.billNo || String(editingItem.billNo).trim() === "") {
+  Alert.alert("Validation Error", "Please enter a valid bill number.");   
+  return;
+}
     try {
-      const mobileRegex = /^[6-9]\d{9}$/; // Indian format
- if (!mobileRegex.test((editingItem.customer_mobile ?? '').toString())) 
-    {
-    Alert.alert("Invalid Mobile Number", "Please enter a valid 10-digit mobile number edit.");
-    return;
-  }
+ 
   console.log("Saving item:", JSON.stringify(editingItem));
     setLoading(true); // ✅ Show loader
-      const response = await fetch(apiUrl+"?requestName=UpdateMember", {
+      const response = await fetch(apiUrl+"?requestName=UpdateBill", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingItem),
@@ -158,11 +181,11 @@ const handleSelectMember = (selectedValue: string | null) => {
 
       await response.text();
       setEditModalVisible(false);
-      
-       setLoading(false); // ✅ Hide loader after save
+            Alert.alert("Success", "Data updated successfully!");
+        setLoading(false); // ✅ Show loader
+// Refresh list
+      fetchExpenses();
 
-      Alert.alert("Success", "Data updated successfully!");
-    await  fetchExpenses();
     } catch (error) {
       console.error("Failed to update:", error);
     }
@@ -214,13 +237,16 @@ return (
             <Text style={styles.headerCell}>Mobile</Text>
                         <Text style={styles.headerCell}>B.Amt</Text>
             <Text style={styles.headerCell}>Bal.</Text>
+            <Text style={styles.headerCell}>Mode</Text>
           </View>
         }
        
         renderItem={({ item, index }) => {
+                    const balance =item.balance_after.toString()==="#NUM!" ? "": parseFloat(item.balance_after.toString());
           const backgroundColor =
             item.customer_type === "wallet" ? "#d4edda" : "#f8d7da";
-
+const backgroundColorCell =
+            item.payment_mode === "pending" ? "#d19696ff" : backgroundColor;
           return (
             <TouchableOpacity
               onPress={() => handleEdit(item)}
@@ -231,7 +257,10 @@ return (
               <Text style={styles.cell}>{item.customer_name}</Text>
               <Text style={styles.cell}>{item.customer_mobile}</Text>
                 <Text style={styles.cell}>{item.bill_amount}</Text>
-               <Text style={styles.cell}>{item.balance_after}</Text>
+               <Text style={styles.cell}>{balance}</Text>
+               <Text style={[styles.cell, { backgroundColor: backgroundColorCell }]}>
+                {item.payment_mode}
+              </Text>
             </TouchableOpacity>
           );
         }}
@@ -245,56 +274,44 @@ return (
                       ₹ {totalAmount.toFixed(2)}
                     </Text>
                     <Text style={styles.cell}> ₹ {totalAmountWallet.toFixed(2)}</Text>
+                    <Text style={styles.cell}></Text>
                   </View>
                 }
+                
       />
     )}
 
     {/* Modal */}
-    {/* <Modal visible={editModalVisible} transparent={true} animationType="slide">
+    <Modal visible={editingItem?.payment_mode === "pending" ?editModalVisible:false} transparent={true} animationType="slide">
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Edit Expense</Text>
-
-          <TextInput
-            style={styles.input}
-            value={editingItem?.customer_mobile?.toString()}
-            onChangeText={(text) =>
-              setEditingItem((prev) => prev && { ...prev, name: text })
-            }
-          />
-
-          <TextInput
-            style={styles.input}
-            value={editingItem?.customer_mobile?.toString()}
-            keyboardType="numeric"
-            maxLength={10}
-            onChangeText={(text) => {
-              const cleanedText = text.replace(/[^0-9]/g, "");
-              setEditingItem(
-                (prev) => prev && { ...prev, mobile: cleanedText }
-              );
-
-              if (
-                cleanedText.length === 10 &&
-                !mobileRegex.test(cleanedText)
-              ) {
-                Alert.alert(
-                  "Invalid Mobile Number",
-                  "Must start with 6–9 and be 10 digits."
-                );
-              }
-            }}
-          />
-
-          <TextInput
-            style={styles.input}
-            value={editingItem?.customer_name?.toString()}
-            onChangeText={(text) =>
-              setEditingItem((prev) => prev && { ...prev, job: text })
-            }
-          />
-
+            <View style={styles.grid}> 
+                 <View style={styles.card}>
+        <View style={styles.cardBody}>
+            <Text style={styles.cardTitle}>Payment</Text>
+          <View style={styles.radioRow}  id="walkinOptions">
+                                  {/* Wallet Member */}
+                                  <TouchableOpacity
+                                    style={[styles.radio, editingItem?.customer_type === "walkin" && editingItem.paymentMode=="upi" && styles.radioSelected]}
+                                    onPress={() => handlePendingRadio("upi")}
+                                  >
+                                    <View style={[styles.circle, editingItem?.customer_type === "walkin" && editingItem.paymentMode=="upi" && styles.circleActive]} />
+                                    <Text style={styles.radioLabel}>UPI</Text>
+                                  </TouchableOpacity>
+          
+          
+      
+          
+                                  {/* Other / Walk-in */}
+                                  <TouchableOpacity
+                                    style={[styles.radio, editingItem?.customer_type === "walkin" && editingItem.paymentMode=="cash" && styles.radioSelected]}
+                                   onPress={() => handlePendingRadio("cash")}
+                                  >
+                                    <View style={[styles.circle, editingItem?.customer_type  === "walkin" && editingItem.paymentMode=="cash" && styles.circleActive]} />
+                                    <Text style={styles.radioLabel}>Cash</Text>
+                                  </TouchableOpacity>
+                                </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
               onPress={() => setEditModalVisible(false)}
@@ -311,7 +328,10 @@ return (
           </View>
         </View>
       </View>
-    </Modal> */}
+      </View>
+      </View>
+      </View>
+    </Modal> 
   </>
 );
 
@@ -319,13 +339,69 @@ return (
 }
 
 const styles = StyleSheet.create({
+
+
+  radioRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginVertical: 10,
+  },
+  radio: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+  },
+  radioSelected: {
+    borderColor: "white", // highlight border
+    backgroundColor: "#333", // optional dark bg
+  },
+  circle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#ccc",
+    marginRight: 8,
+  },
+  circleActive: {
+    backgroundColor: "white", // 👈 selected circle color
+  },
+  labelRadio: {
+    color: "white", // label text color
+  },
   headerContainer: {
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
   marginBottom: 10,
-},
-
+}, grid: {
+    flexDirection: "column",
+    gap: 8,
+  }, card: {
+   backgroundColor: '#111731', // equivalent of var(--card)
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.08)',
+  borderRadius: 18,
+  // Shadow for iOS
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.25,
+  shadowRadius: 30,
+  // Shadow for Android
+  elevation: 5,
+  },
+  cardTitle: {
+    marginTop: 0,
+    marginRight: 0,
+    marginBottom: 12,
+    marginLeft: 0,
+    fontSize: 18,
+    color: "#e5e9f5", // matches your --text variable
+    fontWeight: "600", // optional, if you want heading style
+  },
 boldText: {
     fontWeight: "bold",
   },
@@ -335,7 +411,9 @@ addButton: {
   paddingHorizontal: 12,
   borderRadius: 5,
 },
-
+  cardBody: {
+    padding: 8,
+  },
 addButtonText: {
   color: "#fff",
   fontSize: 14,
@@ -366,5 +444,13 @@ totalRow: {
   },
   label: {
     fontSize: 16,
-  },
+  },  
+ 
+  
+radioLabel: {
+  marginLeft: 8, // space between radio button and label
+  color: "#e5e9f5", // var(--text)
+},
+  
+ 
 });

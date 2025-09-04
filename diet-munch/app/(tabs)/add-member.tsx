@@ -125,7 +125,7 @@ return (
   >
    
 <View style={styles.headerContainer}>
-      <Text style={styles.title}>BMYB Members</Text>
+      <Text style={styles.title}>Add Members</Text>
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => router.push("/show-member")} // Path to Add Member page

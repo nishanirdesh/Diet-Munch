@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Button, ScrollView, StyleSheet, Text, View } from "react-native";
 import { BarChart } from "react-native-chart-kit";
-
+import { apiUrls } from "../constants/api"; // adjust path as per your folder
+const SHEET_API_URL = apiUrls.memberUrl; // Use the memberUrl for saving expenses
 export default function Dashboard() {
   const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const [monthlyTotals, setMonthlyTotals] = useState<number[]>([]);
@@ -16,9 +17,9 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const monthlyApi = "https://script.google.com/macros/s/AKfycbzWVbPQIx2TTvQtm5R96XPGaBnt36r_4Nh9M-e-7QX2p7dOwQZ7we5IjHzcTcM_Cnd8VA/exec";
-      const res = await fetch(monthlyApi);
+ const res = await fetch(SHEET_API_URL+ "?requestName=showBill");
       const data = await res.json();
+      console.log(data)
       setMonthlyTotals(getMonthlyTotals(data));
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -27,11 +28,11 @@ export default function Dashboard() {
     }
   };
 
-  const getMonthlyTotals = (data: { date: string; amount: number }[]) => {
+  const getMonthlyTotals = (data: { bill_date: string; bill_amount: number }[]) => {
     const monthlyTotals = Array(12).fill(0);
     data.forEach((item) => {
-      const monthIndex = new Date(item.date).getMonth();
-      monthlyTotals[monthIndex] += Number(item.amount) || 0;
+      const monthIndex = new Date(item.bill_date).getMonth();
+      monthlyTotals[monthIndex] += Number(item.bill_amount) || 0;
     });
     return monthlyTotals;
   };
@@ -42,7 +43,7 @@ export default function Dashboard() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Monthly Contributions</Text>
+      <Text style={styles.title}>Monthly Collection</Text>
 
       <Button title="🔄 Refresh Data" onPress={fetchData} color="#2196F3" />
 

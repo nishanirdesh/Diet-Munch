@@ -6,11 +6,15 @@ import { Dropdown } from "react-native-element-dropdown";
 import { TextInput } from "react-native-paper";
 // call api.ts to get api urls
 import { apiUrls } from "../constants/api"; // adjust path as per your folder
+import { fetchMenu, Menu } from "../constants/menu";
+//import { menuold } from "../constants/menu"; // adjust path as per your folder
 
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   GestureResponderEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,7 +22,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { menu } from "./menu"; // adjust path as per your folder
+
+  //import { menu } from "../constants/menu";
 const { width } = Dimensions.get("window");
 export const Colors = {
   bg: "#0b1020",
@@ -51,7 +56,13 @@ interface CartItem {
   qty: number;
   price: number;
 }
-
+ interface MenuData {
+  sno: number;
+  itemname: string;
+  price: number;
+  catname: string;
+  info:string;
+}
 type MemberItem = {
   sno: string | number;
   name: string;
@@ -75,12 +86,16 @@ export default function TableExpenseScreen() {
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [selectedItemId, setSelectedItemId] = useState(menu[0].id);
-    const [selectedCategoryName, setselectedCategoryName] = useState(menu[0].category);
+  //const [selectedItemId, setSelectedItemId] = useState(menuold[0].id);
+   const [itemName, setIteamName] = useState("");
+    const [selectedItemId, setSelectedItemId] = useState(0);
+    const [selectedCategoryName, setselectedCategoryName] = useState('');
+    const [menus, setMenu] = useState<MenuData[]>([]);
   const [qty, setQty] = useState(1);
-  const [price, setPrice] = useState(menu[0].price);
+  //const [price, setPrice] = useState(menuold[0].price);
+   const [price, setPrice] = useState(0);
   // const [paymentMode, setPaymentMode] = useState<'wallet' | 'cash' | 'card' | 'upi'>('wallet');
-    const [paymentMode, setPaymentMode] = useState<'wallet' | 'cash' | 'upi'>('wallet');
+    const [paymentMode, setPaymentMode] = useState<'wallet' | 'cash' | 'upi'| 'pending' >('wallet');
   const [fromWallet, setFromWallet] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [cashAmt, setCashAmt] = useState(0);
@@ -88,6 +103,7 @@ export default function TableExpenseScreen() {
     const [allMembers, setAllMembers] =useState<MemberItem[]>([]);
   const [filteredMembers, setFilteredMembers] = useState<MemberItem[]>([]);
   const [upiAmt, setUpiAmt] = useState(0);
+  const [pendingAmt, setPendingAmt] = useState(0);
   const [isBillLocked, setIsBillLocked] = useState(false);
 const [loading, setLoading] = useState(false);
   // --- Derived State (useMemo) ---
@@ -100,10 +116,10 @@ const [loading, setLoading] = useState(false);
 const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
   const paidAmount = useMemo(() => {
     //return +(fromWallet + cashAmt + cardAmt + upiAmt).toFixed(2);
-        return +(fromWallet + cashAmt  + upiAmt).toFixed(2);
+        return +(fromWallet + cashAmt  + upiAmt+pendingAmt).toFixed(2);
   }, 
   // [fromWallet, cashAmt, cardAmt, upiAmt]);
-  [fromWallet, cashAmt,  upiAmt]);
+  [fromWallet, cashAmt,  upiAmt, pendingAmt]);
 
   const dueAmount = useMemo(() => {
     return +(grandTotal - paidAmount).toFixed(2);
@@ -117,7 +133,6 @@ const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
     try {
       const res = await fetch(apiUrl+ "?requestName=showMembers");
       const data = await res.json();
-      console.log("Fetched members:", data);
    setAllMembers(data);
   setFilteredMembers(data); // start by showing all
   
@@ -136,16 +151,27 @@ const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
   // --- Effects ---
   useEffect(() => {
     fetchMembers();
-    const item = menu.find((i: { id: any; }) => i.id === selectedItemId);
+    const item = menus.find((i: { sno: any; }) => i.sno === selectedItemId);
     if (item) setPrice(item.price);
   }, [selectedItemId]);
+ useEffect(() => {
+    const loadData = async () => {
+      const data = await fetchMenu();
 
+  setselectedCategoryName(data[0].catname)
+  setSelectedItemId(data[0].sno)
+  setPrice(data[0].price)
+      setMenu(data);
+      setLoading(false);
+    };
+    loadData();
+  }, []);
   useEffect(() => {
     let newFromWallet = 0;
     let newCash = 0;
     let newCard = 0;
     let newUpi = 0;
-
+let newPending=0;
     const total = grandTotal;
     const bal = selectedMember?.amount || 0;
 
@@ -158,12 +184,14 @@ const apiUrl=apiUrls.memberUrl; // Use the saveMember URL for saving bills
       if (paymentMode === 'cash') newCash = total;
       // if (paymentMode === 'card') newCard = total;
       if (paymentMode === 'upi') newUpi = total;
+      if (paymentMode === 'pending') newPending = total;
     }
 
     setFromWallet(+newFromWallet.toFixed(2));
     setCashAmt(+newCash.toFixed(2));
     // setCardAmt(+newCard.toFixed(2));
     setUpiAmt(+newUpi.toFixed(2));
+    setPendingAmt(+newPending.toFixed(2));
   }, [paymentMode, customerType, grandTotal, selectedMember]);
 
 
@@ -205,7 +233,6 @@ debugger;
   }
   else
     if (memberdetails)  {
-     console.log('Searching for member:', memberdetails);
     setCustomerName(memberdetails.name);
     setCustomerMobile(memberdetails.mobile?.toString() || '');
   }
@@ -237,18 +264,45 @@ const handleCustomerTypeChange = (value: string) => {
 
   // const handleAddItem = (e?: React.FormEvent) => {
   const handleAddItem = (e?: GestureResponderEvent) => {
+    debugger
+    if(selectedItemId===0)
+    {
+       alert('Please select item.');
+      return;
+    }
     e?.preventDefault();
     if (!selectedItemId) return;
-    const item = menu.find((i: { id: any; }) => i.id === selectedItemId);
+    const item = menus.find((i: { sno: any; }) => i.sno === selectedItemId);
+    console.log(item)
+   let finalItemName = "";
+
+  if (selectedItemId === 178) {
+    // Use custom textbox value
+    finalItemName = itemName;
+  } else {
+    // Use dropdown item
+    finalItemName = item?.itemname || "";
+  }
+
+  if (price === 0) {
+    alert("Please enter amount.");
+    return;
+  }
+
+  if (finalItemName === "") {
+    alert("Please select item.");
+    return;
+  }
     if (!item) return;
     setCart(prevCart => [
       ...prevCart,
-      { id: item.id, name: item.name, qty, price }
+      { id: item.sno, name: finalItemName +'('+item.info+')', qty, price }
     ]);
     setQty(1);
   };
 
   const handleUpdateCartItem = (index: number, key: keyof CartItem, value: any) => {
+    debugger
     setCart(prevCart => {
       const newCart = [...prevCart];
       (newCart[index] as any)[key] = Number(value);
@@ -270,12 +324,14 @@ const handleCustomerTypeChange = (value: string) => {
     const parts = [];
     if (fromWallet > 0) parts.push(`Wallet ${fmt(fromWallet)}`);
     if (cashAmt > 0) parts.push(`Cash ${fmt(cashAmt)}`);
-    if(remainingBalance > 0 && paymentMode==="wallet") parts.push(`Balance ${fmt(remainingBalance)}`);
+    if(remainingBalance > 0 && paymentMode==="wallet") 
+      parts.push(`Balance ${fmt(remainingBalance)}`);
     // if (cardAmt > 0) parts.push(`Card ${fmt(cardAmt)}`);
+      if (pendingAmt > 0) parts.push(`Pending ${fmt(pendingAmt)}`);
     if (upiAmt > 0) parts.push(`UPI ${fmt(upiAmt)}`);
     const payLine = parts.length ? parts.join(' + ') : '—';
 
-    const msg = `${header}%0A%0AItems:%0A${items}Total: *${fmt(grandTotal)}*%0A%0APayment: ${payLine}%0AThanks for visiting!`;
+    const msg = `${header}%0A%0AItems:%0A${items} %0ATotal: *${fmt(grandTotal)}*%0A%0APayment: ${payLine}%0AThanks for visiting!`;
     return { msg, mobile };
   };
 
@@ -321,6 +377,7 @@ const handleCustomerTypeChange = (value: string) => {
       amount_cash: cashAmt,
       // amount_card: cardAmt,
       amount_upi: upiAmt,
+      amount_pending: pendingAmt,
       items_json: JSON.stringify(cart),
       requestName:"SaveBill"
     };
@@ -375,13 +432,39 @@ if(response.ok) {
     setIsBillLocked(true);
     //window.print();
     // save go to show-bill
-    router.push('/show-bill');
+    // router.push('/show-bill');
      } catch (error) {
       // Error: Alert the user and prevent printing
       console.error('Failed to save bill data:', error);
       alert('Failed to save the bill. Please check your connection and try again.');
     }
   };
+
+
+const handleShareOnText = () => {
+
+  let { msg } = buildWaMessage();
+
+  let phone = selectedMember?.mobile || customerMobile || "";
+
+  if (!phone) {
+    Alert.alert("Error", "No mobile number provided");
+    return;
+  }
+
+  phone = normalizePhone(phone.toString());
+
+  // Just encode once
+  const encodedMsg = encodeURIComponent(msg);
+Alert.alert("Error", encodedMsg);
+  // iOS sometimes requires "&body=", Android supports "?body="
+  const bodyParam = Platform.OS === "ios" ? "&body=" : "?body=";
+  const smsUrl = `sms:${phone}${bodyParam}${encodedMsg}`;
+
+  Linking.openURL(smsUrl).catch(() => {
+    alert("SMS app is not available on this device");
+  });
+};
 
 const handleShareOnWhatsApp = () => {
   let { msg } = buildWaMessage();
@@ -421,9 +504,10 @@ function clamp(value: number, min: number, max: number) {
 }
  const fontSize = clamp(width * 0.026, 20, 28); // like clamp(20px, 2.6vw, 28px)
   // Filter items by selected category
-  const itemData = menu.filter(m => m.category === selectedCategoryName).map(m => ({
-    label: m.name,
-    value: m.id,
+  
+  const itemData = menus.filter(m => m.catname === selectedCategoryName).map(m => ({
+    label: m.itemname,
+    value: m.sno,
   }));
   return (
    
@@ -431,7 +515,7 @@ function clamp(value: number, min: number, max: number) {
     {/* <View style={styles.wrap}> */}
      <View style={styles.header}>
       <Text style={[styles.headerH1, { fontSize }]}>
-        <Text style={styles.headerTitle} >Restaurant Billing</Text>
+        <Text style={styles.headerTitle} >Diet Munch Bill Entry</Text>
         </Text>
        <Text  style={styles.pill}>Bill #{billNo}</Text>
      </View>
@@ -561,7 +645,7 @@ style={{
                  placeholderStyle={{ fontSize: 14, color: "gray" }}
                  selectedTextStyle={{ fontSize: 14 , color: "white" }}
                  inputSearchStyle={{ height: 40, fontSize: 14 }}
-                 data={[...new Set(menu.map((item: { category: string }) => item.category))].map(category => ({
+                 data={[...new Set(menus.map((item: { catname: string }) => item.catname))].map(category => ({
   label: category,
   value: category,
 }))}
@@ -602,6 +686,24 @@ style={{
                  onChange={(item: { value: React.SetStateAction<number>; }) => setSelectedItemId(item.value)}
                  disable={isBillLocked}
                />
+               {/* Show textbox if "Other" is selected */}
+  {selectedItemId === 178 && (
+    <TextInput
+      style={{
+        height: 50,
+        borderColor: "gray",
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        marginTop: 10,
+        color: "white",
+      }}
+      placeholder="Enter custom item"
+      placeholderTextColor="gray"
+      value={itemName}
+      onChangeText={setIteamName}
+    />
+  )}
                </View>
                 <View style={[styles.field, { maxWidth: 120 }]}>
                 <Text  style={styles.label}>Qty</Text >
@@ -791,6 +893,15 @@ style={{
                           <Text style={styles.label}>UPI</Text>
                         </TouchableOpacity>
 
+
+ <TouchableOpacity
+                          style={[styles.radio, customerType === "walkin" && paymentMode=="pending" && styles.radioSelected]}
+                          onPress={() => setPaymentMode("pending")}
+                        >
+                          <View style={[styles.circle, customerType === "walkin" && paymentMode=="pending" && styles.circleActive]} />
+                          <Text style={styles.label}>Pending</Text>
+                        </TouchableOpacity>
+
                         {/* Other / Walk-in */}
                         <TouchableOpacity
                           style={[styles.radio, customerType === "walkin" && paymentMode=="cash" && styles.radioSelected]}
@@ -856,7 +967,19 @@ style={{
 />
                 </View>
               )}
-              
+                {(customerType === 'walkin' && paymentMode === 'pending') && (
+                <View style={styles.totalline}>
+                  <Text style={styles.badge}>Pending</Text>
+                 <TextInput
+  mode="outlined"
+  keyboardType="numeric"
+  value={pendingAmt.toString()}
+  onChangeText={(text) => setPendingAmt(Number(text) || 0)}
+  style={{ width: 140, textAlign: "right" }}
+  editable={!isBillLocked}
+/>
+                </View>
+              )}
             </View>
             <View style={styles.totalline}><Text  style={styles.label}>Remaining Wallet Balance</Text ><Text  style={styles.label} id="remBal">{fmt(remainingBalance)}</Text ></View>
               <View style={styles.totalline}><Text  style={styles.label}>Paid</Text ><Text  style={styles.label} id="paid">{fmt(paidAmount)}</Text ></View>
@@ -885,7 +1008,7 @@ style={{
           <View style={styles.footerBtn}>
             <View style={{ flexDirection: "row", gap: 10 }}>
   <TouchableOpacity
-    onPress={() => { if (!isBillLocked) window.location.reload(); }}
+    onPress={() => { if (!isBillLocked) router.push('/add-bildetails'); }}
     disabled={isBillLocked}
     style={[styles.btnAdd]}
   >

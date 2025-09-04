@@ -203,7 +203,7 @@ editingItem.amount=editingItem.amount+editingItem.oldAmount;
 return (
   <>
 <View style={styles.headerContainer}>
-      <Text style={styles.title}>BMYB Members</Text>
+      <Text style={styles.title}>Member List</Text>
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => router.push("/add-member")} // Path to Add Member page
